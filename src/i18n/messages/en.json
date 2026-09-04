@@ -1,0 +1,152 @@
+{
+  "nav": {
+    "home": "Home",
+    "courses": "Courses",
+    "glossary": "Glossary",
+    "calculators": "Calculators",
+    "simulator": "Simulator",
+    "signin": "Sign In",
+    "signup": "Sign Up",
+    "signout": "Sign Out",
+    "admin": "Admin Panel",
+    "profile": "Profile"
+  },
+  "home": {
+    "title": "Ziabl Trade Academy",
+    "subtitle": "Free platform for learning trading and investing — from bonds to technical analysis",
+    "cta": "Start Learning",
+    "features": {
+      "structured": { "title": "Structured Learning", "desc": "6 modules and 15 lessons — from economic fundamentals to technical analysis" },
+      "quizzes": { "title": "Interactive Quizzes", "desc": "Test your knowledge after each lesson with instant feedback" },
+      "charts": { "title": "Trading Charts", "desc": "Interactive candlestick charts and indicators on real data" },
+      "glossary": { "title": "Term Glossary", "desc": "50+ financial terms with definitions and lesson links" },
+      "calculators": { "title": "Calculators", "desc": "Compound interest, bond yield, and position size calculators" },
+      "progress": { "title": "Progress Tracking", "desc": "Register and track your achievements" }
+    },
+    "stats": {
+      "modules": "Modules",
+      "lessons": "Lessons",
+      "quizzes": "Quizzes",
+      "terms": "Terms"
+    }
+  },
+  "courses": {
+    "title": "Course Catalog",
+    "subtitle": "Learn trading and investing step by step",
+    "lessons": "lessons",
+    "lesson": "lesson",
+    "progress": "Progress",
+    "startLearning": "Start Learning",
+    "continue": "Continue",
+    "completed": "Completed",
+    "module": "Module"
+  },
+  "lesson": {
+    "prevLesson": "Previous Lesson",
+    "nextLesson": "Next Lesson",
+    "markComplete": "Mark as Completed",
+    "completed": "Lesson Completed ✓",
+    "loginToTrack": "Sign in to track your progress",
+    "backToCourses": "Back to Courses",
+    "contents": "Module Contents"
+  },
+  "quiz": {
+    "title": "Knowledge Check",
+    "question": "Question",
+    "of": "of",
+    "submit": "Check Answers",
+    "score": "Your Score",
+    "passed": "Excellent! You passed the quiz!",
+    "failed": "Try again",
+    "tryAgain": "Retake Quiz",
+    "explanation": "Explanation",
+    "correct": "Correct!",
+    "incorrect": "Incorrect"
+  },
+  "glossary": {
+    "title": "Glossary",
+    "subtitle": "Financial Terms Dictionary",
+    "search": "Search term...",
+    "noResults": "Nothing found",
+    "relatedLesson": "Related Lesson",
+    "allCategories": "All Categories"
+  },
+  "calc": {
+    "title": "Financial Calculators",
+    "subtitle": "Practical tools for calculations",
+    "calculate": "Calculate",
+    "compound": {
+      "title": "Compound Interest Calculator",
+      "initialAmount": "Initial Amount",
+      "monthlyContribution": "Monthly Contribution",
+      "annualRate": "Annual Rate (%)",
+      "years": "Term (years)",
+      "totalAmount": "Total Amount",
+      "totalInterest": "Interest Earned",
+      "chartTitle": "Capital Growth"
+    },
+    "bond": {
+      "title": "Bond Yield Calculator",
+      "faceValue": "Face Value",
+      "currentPrice": "Current Price",
+      "couponRate": "Coupon Rate (%)",
+      "yearsToMaturity": "Years to Maturity",
+      "ytm": "Yield to Maturity (YTM)",
+      "currentYield": "Current Yield",
+      "totalReturn": "Total Return"
+    },
+    "position": {
+      "title": "Position Size Calculator",
+      "accountBalance": "Account Balance",
+      "riskPercent": "Risk per Trade (%)",
+      "entryPrice": "Entry Price",
+      "stopLoss": "Stop Loss",
+      "positionSize": "Position Size",
+      "shares": "Number of Shares",
+      "riskAmount": "Risk Amount"
+    }
+  },
+  "auth": {
+    "signin": "Sign In",
+    "signup": "Create Account",
+    "email": "Email",
+    "password": "Password",
+    "name": "Name",
+    "confirmPassword": "Confirm Password",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "createAccount": "Register",
+    "loginButton": "Sign In",
+    "error": "Invalid email or password",
+    "registerError": "Registration error"
+  },
+  "common": {
+    "loading": "Loading...",
+    "error": "An error occurred",
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "back": "Back",
+    "language": "Language",
+    "search": "Search"
+  },
+  "footer": {
+    "rights": "All rights reserved",
+    "disclaimer": "Platform materials are for educational purposes only and do not constitute investment advice.",
+    "tagline": "Trading and Investment Education"
+  },
+  "simulator": {
+    "title": "Trading Simulator",
+    "buy": "Buy",
+    "sell": "Sell",
+    "balance": "Balance",
+    "portfolio": "Portfolio",
+    "pnl": "P&L",
+    "history": "Trade History",
+    "reset": "Reset",
+    "shares": "shares",
+    "price": "Price"
+  }
+}

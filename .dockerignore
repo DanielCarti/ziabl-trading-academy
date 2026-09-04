@@ -1,0 +1,14 @@
+node_modules
+.next
+.git
+*.md
+!DEPLOY.md
+.env.local
+.env.development
+.env.test
+coverage
+.vscode
+.idea
+*.log
+pgdata
+ssl-certs

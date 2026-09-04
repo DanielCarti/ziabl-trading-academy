@@ -1,0 +1,139 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-surface-border;
+  }
+  
+  body {
+    @apply bg-background text-text-primary font-sans antialiased;
+  }
+
+  ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-background;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-surface-light rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-surface-border;
+  }
+
+  ::selection {
+    @apply bg-accent/20 text-accent-light;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-surface border border-surface-border rounded-xl p-6 transition-all duration-300;
+  }
+
+  .card-hover {
+    @apply card hover:border-accent/30 hover:shadow-lg hover:shadow-accent/5;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-accent text-background font-semibold rounded-lg
+           transition-all duration-200 hover:bg-accent-light hover:shadow-lg hover:shadow-accent/20
+           active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-secondary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-surface-light text-text-primary font-medium rounded-lg
+           border border-surface-border transition-all duration-200
+           hover:border-accent/30 hover:bg-surface active:scale-[0.98]
+           disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-danger {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 bg-danger text-white font-semibold rounded-lg
+           transition-all duration-200 hover:bg-danger-light active:scale-[0.98];
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 text-text-secondary font-medium rounded-lg
+           transition-all duration-200 hover:bg-surface-light hover:text-text-primary;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 bg-surface-light border border-surface-border rounded-lg text-text-primary
+           placeholder:text-text-muted transition-all duration-200
+           focus:outline-none focus:border-accent focus:ring-1 focus:ring-accent/30;
+  }
+
+  .badge {
+    @apply inline-flex items-center px-3 py-1 text-xs font-semibold rounded-full;
+  }
+
+  .badge-green {
+    @apply badge bg-accent/10 text-accent;
+  }
+
+  .badge-red {
+    @apply badge bg-danger/10 text-danger;
+  }
+
+  .badge-yellow {
+    @apply badge bg-warning/10 text-warning;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-accent to-accent-light bg-clip-text text-transparent;
+  }
+
+  .glow-border {
+    @apply border border-accent/20 shadow-[0_0_15px_rgba(0,212,170,0.1)];
+  }
+
+  .progress-bar {
+    @apply h-2 bg-surface-light rounded-full overflow-hidden;
+  }
+
+  .progress-bar-fill {
+    @apply h-full bg-gradient-to-r from-accent to-accent-light rounded-full transition-all duration-700 ease-out;
+  }
+
+  .grid-pattern {
+    background-image: 
+      linear-gradient(rgba(42, 42, 58, 0.3) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(42, 42, 58, 0.3) 1px, transparent 1px);
+    background-size: 40px 40px;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .animate-in {
+    animation: fadeIn 0.5s ease-out forwards;
+  }
+}
+
+/* Code highlighting overrides for dark theme */
+.hljs {
+  background: #12121a !important;
+  color: #e4e4e7 !important;
+  padding: 1.25rem !important;
+  border-radius: 0.75rem !important;
+  border: 1px solid #2a2a3a !important;
+}
+
+.hljs-keyword { color: #a855f7 !important; }
+.hljs-string { color: #00d4aa !important; }
+.hljs-number { color: #fbbf24 !important; }
+.hljs-comment { color: #71717a !important; }
+.hljs-function { color: #3b82f6 !important; }
