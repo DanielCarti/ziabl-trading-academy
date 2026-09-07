@@ -154,5 +154,31 @@
     "reset": "Reset",
     "shares": "shares",
     "price": "Price"
+  },
+  "profile": {
+    "title": "My Profile",
+    "subtitle": "Account management, learning progress, and stats",
+    "student": "Student",
+    "admin": "Administrator",
+    "registeredVia": "Auth Provider",
+    "stats": "Learning Statistics",
+    "completedLessons": "Lessons Completed",
+    "passedQuizzes": "Quizzes Passed",
+    "averageScore": "Average Score",
+    "studyTime": "Hours of Study",
+    "overallProgress": "Overall Course Progress",
+    "recentActivity": "Recent Lessons",
+    "continueStudy": "Continue Learning",
+    "noActivity": "You haven't completed any lessons yet. Check out the courses!",
+    "goToCourses": "Go to Courses",
+    "settings": "Account Settings",
+    "editName": "Display Name",
+    "namePlaceholder": "Enter your name",
+    "saveChanges": "Save Changes",
+    "savedSuccess": "Settings saved successfully!",
+    "theme": "Color Theme",
+    "language": "Interface Language",
+    "dangerZone": "Session",
+    "signOut": "Sign Out"
   }
 }

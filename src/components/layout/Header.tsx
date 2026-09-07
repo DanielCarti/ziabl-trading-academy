@@ -118,20 +118,36 @@ export default function Header() {
 
             {/* Auth */}
             {session?.user ? (
-              <div className="flex items-center gap-2">
-                {(session.user as any).role === 'ADMIN' && (
-                  <Link href="/admin" className="btn-ghost text-sm">
-                    <LayoutDashboard className="w-4 h-4" />
-                    {t('admin')}
+              <div className="relative">
+                <div className="flex items-center gap-2">
+                  {(session.user as any).role === 'ADMIN' && (
+                    <Link href="/admin" className="btn-ghost text-sm hidden lg:inline-flex">
+                      <LayoutDashboard className="w-4 h-4" />
+                      {t('admin')}
+                    </Link>
+                  )}
+                  
+                  <Link
+                    href={`/${locale}/profile`}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-surface-light hover:bg-surface rounded-xl border border-surface-border hover:border-accent/40 transition-all duration-200 group shadow-sm"
+                    title={t('profile')}
+                  >
+                    <div className="w-6 h-6 rounded-full bg-accent/15 text-accent flex items-center justify-center font-bold text-xs">
+                      {(session.user.name || session.user.email || 'U')[0].toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors max-w-[130px] truncate">
+                      {session.user.name || session.user.email}
+                    </span>
                   </Link>
-                )}
-                <div className="flex items-center gap-2 px-3 py-2 bg-surface-light rounded-lg border border-surface-border">
-                  <User className="w-4 h-4 text-accent" />
-                  <span className="text-sm text-text-primary max-w-[120px] truncate">{session.user.name || session.user.email}</span>
+
+                  <button
+                    onClick={() => signOut({ callbackUrl: `/${locale}` })}
+                    className="btn-ghost text-sm text-danger/80 hover:text-danger hover:bg-danger/10 !p-2"
+                    title={t('signout')}
+                  >
+                    <LogOut className="w-4 h-4" />
+                  </button>
                 </div>
-                <button onClick={() => signOut()} className="btn-ghost text-sm text-danger hover:bg-danger/10">
-                  <LogOut className="w-4 h-4" />
-                </button>
               </div>
             ) : (
               <div className="flex items-center gap-2">
@@ -217,10 +233,23 @@ export default function Header() {
               <span className="text-xs text-text-muted">Сменить язык</span>
             </button>
             {session?.user ? (
-              <button onClick={() => signOut()} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-danger w-full hover:bg-surface-light">
-                <LogOut className="w-5 h-5" />
-                {t('signout')}
-              </button>
+              <>
+                <Link
+                  href={`/${locale}/profile`}
+                  onClick={() => setMobileOpen(false)}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-text-primary hover:bg-surface-light font-medium"
+                >
+                  <User className="w-5 h-5 text-accent" />
+                  <span>{t('profile')}</span>
+                </Link>
+                <button
+                  onClick={() => signOut({ callbackUrl: `/${locale}` })}
+                  className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-danger w-full hover:bg-surface-light text-left"
+                >
+                  <LogOut className="w-5 h-5" />
+                  {t('signout')}
+                </button>
+              </>
             ) : (
               <>
                 <Link href={`/${locale}/auth/signin`} onClick={() => setMobileOpen(false)} className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-text-secondary w-full hover:bg-surface-light">
