@@ -15,7 +15,10 @@ export default function SignInPage() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const urlError = searchParams.get('error');
+  const [error, setError] = useState(
+    urlError ? (urlError === 'Callback' ? 'Ошибка входа через внешнюю службу' : urlError) : ''
+  );
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {

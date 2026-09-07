@@ -9,13 +9,36 @@ import { prisma } from '@/lib/prisma';
 
 const adminEmail = (process.env.ADMIN_EMAIL || 'admin@ziabl.ru').toLowerCase();
 
+// Safe PrismaAdapter that gracefully handles database connection failures in dev
+function createSafePrismaAdapter() {
+  const baseAdapter = PrismaAdapter(prisma) as any;
+  const safeAdapter: any = {};
+  for (const [key, fn] of Object.entries(baseAdapter)) {
+    if (typeof fn === 'function') {
+      safeAdapter[key] = async (...args: any[]) => {
+        try {
+          return await (fn as any)(...args);
+        } catch (err: any) {
+          console.warn(`[SafePrismaAdapter] DB operation ${key} bypassed: ${err?.message || err}`);
+          // Return null/undefined so NextAuth proceeds with JWT without crashing
+          return null;
+        }
+      };
+    } else {
+      safeAdapter[key] = fn;
+    }
+  }
+  return safeAdapter;
+}
+
 export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
+  adapter: createSafePrismaAdapter(),
   session: {
     strategy: 'jwt',
   },
   pages: {
-    signIn: '/auth/signin',
+    signIn: '/ru/auth/signin',
+    error: '/ru/auth/signin',
   },
   providers: [
     ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
