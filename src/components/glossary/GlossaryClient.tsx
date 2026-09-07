@@ -31,6 +31,22 @@ export default function GlossaryClient({ terms, locale }: { terms: GlossaryTerm[
     return matchesSearch && matchesCategory;
   });
 
+  const categoryTranslations: Record<string, { ru: string; en: string }> = {
+    'Макроэкономика': { ru: 'Макроэкономика', en: 'Macroeconomics' },
+    'Облигации': { ru: 'Облигации', en: 'Bonds' },
+    'Фонды': { ru: 'Фонды', en: 'Funds' },
+    'Портфель': { ru: 'Портфель', en: 'Portfolio' },
+    'Трейдинг': { ru: 'Трейдинг', en: 'Trading' },
+    'Анализ': { ru: 'Анализ', en: 'Valuation' },
+    'Теханализ': { ru: 'Теханализ', en: 'Technical Analysis' },
+    'Инвестиции': { ru: 'Инвестиции', en: 'Investments' },
+    'Общее': { ru: 'Общее', en: 'General' },
+  };
+
+  const getCategoryLabel = (cat: string) => {
+    return categoryTranslations[cat] ? (locale === 'en' ? categoryTranslations[cat].en : categoryTranslations[cat].ru) : cat;
+  };
+
   return (
     <div>
       {/* Search */}
@@ -59,7 +75,7 @@ export default function GlossaryClient({ terms, locale }: { terms: GlossaryTerm[
             onClick={() => setSelectedCategory(cat === selectedCategory ? null : cat)}
             className={`badge ${cat === selectedCategory ? 'badge-green' : 'bg-surface-light text-text-secondary hover:text-text-primary'} cursor-pointer transition-all`}
           >
-            {cat}
+            {getCategoryLabel(cat)}
           </button>
         ))}
       </div>
@@ -88,7 +104,7 @@ export default function GlossaryClient({ terms, locale }: { terms: GlossaryTerm[
                     {term.category && (
                       <span className="badge bg-surface-light text-text-muted text-xs">
                         <Tag className="w-3 h-3 mr-1" />
-                        {term.category}
+                        {getCategoryLabel(term.category)}
                       </span>
                     )}
                     {term.relatedLessonSlug && (

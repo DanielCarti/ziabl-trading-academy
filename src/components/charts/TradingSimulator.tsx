@@ -154,6 +154,18 @@ export default function TradingSimulator() {
   const pnl = portfolioValue - initialBalance;
   const pnlPercent = (pnl / initialBalance) * 100;
 
+  const formatTime = (tVal: any): string => {
+    if (!tVal) return '';
+    if (typeof tVal === 'string') return tVal;
+    if (typeof tVal === 'object' && 'year' in tVal && 'month' in tVal && 'day' in tVal) {
+      const y = String(tVal.year);
+      const m = String(tVal.month).padStart(2, '0');
+      const d = String(tVal.day).padStart(2, '0');
+      return `${y}-${m}-${d}`;
+    }
+    return String(tVal);
+  };
+
   const handleBuy = (amount: number = 10) => {
     const cost = amount * currentPrice;
     if (balance < cost) {
@@ -169,7 +181,7 @@ export default function TradingSimulator() {
         type: 'BUY',
         price: currentPrice,
         shares: amount,
-        time: currentCandle.time,
+        time: formatTime(currentCandle.time),
       },
       ...tList,
     ]);
@@ -192,7 +204,7 @@ export default function TradingSimulator() {
         type: 'SELL',
         price: currentPrice,
         shares: sellCount,
-        time: currentCandle.time,
+        time: formatTime(currentCandle.time),
       },
       ...tList,
     ]);
@@ -298,7 +310,7 @@ export default function TradingSimulator() {
           </select>
 
           <div className="text-xs text-text-muted font-mono ml-2">
-            Свеча: {currentIndex + 1} / {fullDataRef.current.length} ({currentCandle?.time})
+            Свеча: {currentIndex + 1} / {fullDataRef.current.length} ({formatTime(currentCandle?.time)})
           </div>
         </div>
 
