@@ -24,11 +24,13 @@ export default function Header() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string>('avatar-1');
   const [userTimezone, setUserTimezone] = useState<string>('Europe/Moscow');
+  const [showClockWidget, setShowClockWidget] = useState<boolean>(true);
+  const [showCbrWidget, setShowCbrWidget] = useState<boolean>(true);
   const [cbrRate, setCbrRate] = useState<number | null>(null);
   const [clockTime, setClockTime] = useState<string>('');
   const [clockDate, setClockDate] = useState<string>('');
 
-  // Load avatar, name, and timezone
+  // Load avatar, name, timezone, and widget visibility toggles
   useEffect(() => {
     const updateLocalPreferences = () => {
       const savedName = localStorage.getItem('ziabl_user_name');
@@ -40,6 +42,12 @@ export default function Header() {
 
       const savedTz = localStorage.getItem('ziabl_user_timezone');
       if (savedTz) setUserTimezone(savedTz);
+
+      const savedClock = localStorage.getItem('ziabl_show_clock');
+      if (savedClock !== null) setShowClockWidget(savedClock === 'true');
+
+      const savedCbr = localStorage.getItem('ziabl_show_cbr');
+      if (savedCbr !== null) setShowCbrWidget(savedCbr === 'true');
     };
 
     updateLocalPreferences();
@@ -152,7 +160,7 @@ export default function Header() {
           {/* Right side */}
           <div className="hidden md:flex items-center gap-2.5">
             {/* Live Clock & Timezone Display */}
-            {clockTime && (
+            {showClockWidget && clockTime && (
               <div
                 title={`Время по часовому поясу: ${userTimezone}. Настроить можно в личном кабинете.`}
                 className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-surface-light/80 border border-surface-border/70 text-right select-none"
@@ -170,15 +178,17 @@ export default function Header() {
             )}
 
             {/* Central Bank of Russia Key Rate Live Widget */}
-            <div
-              title="Текущая ключевая ставка ЦБ РФ (данные Банка России cbr.ru)"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-surface-light/80 border border-surface-border/70 text-xs select-none hover:border-accent/40 transition-colors"
-            >
-              <span className="text-[11px] font-semibold text-text-muted uppercase">ЦБ РФ:</span>
-              <span className="font-mono font-bold text-accent">
-                {cbrRate !== null ? `${cbrRate.toFixed(1)}%` : '18.0%'}
-              </span>
-            </div>
+            {showCbrWidget && (
+              <div
+                title="Текущая ключевая ставка ЦБ РФ (данные Банка России cbr.ru)"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-surface-light/80 border border-surface-border/70 text-xs select-none hover:border-accent/40 transition-colors"
+              >
+                <span className="text-[11px] font-semibold text-text-muted uppercase">ЦБ РФ:</span>
+                <span className="font-mono font-bold text-accent">
+                  {cbrRate !== null ? `${cbrRate.toFixed(1)}%` : '18.0%'}
+                </span>
+              </div>
+            )}
 
             {/* Theme Toggle Button */}
             <ThemeToggle />

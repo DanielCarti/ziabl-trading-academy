@@ -9,7 +9,7 @@ import {
   User, Mail, Shield, BookOpen, Award, CheckCircle2,
   Clock, ArrowRight, LayoutDashboard, Settings, LogOut,
   Sparkles, Moon, Sun, Globe, KeyRound, Lock, Smartphone,
-  Check, QrCode, ExternalLink, AlertCircle, Copy
+  Check, QrCode, ExternalLink, AlertCircle, Copy, Percent
 } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { startNavigationProgress } from '@/components/layout/NavigationProgress';
@@ -59,9 +59,12 @@ export default function ProfilePage() {
 
   const [selectedAvatar, setSelectedAvatar] = useState<string>('avatar-1');
   const [selectedTimezone, setSelectedTimezone] = useState<string>('Europe/Moscow');
+  const [showClock, setShowClock] = useState<boolean>(true);
+  const [showCbr, setShowCbr] = useState<boolean>(true);
 
-  // Unlink confirmation modal
+  // Unlink confirmation modal and connect modal
   const [unlinkProvider, setUnlinkProvider] = useState<'yandex' | 'google' | 'github' | null>(null);
+  const [connectProviderModal, setConnectProviderModal] = useState<'google' | 'github' | null>(null);
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
@@ -127,6 +130,12 @@ export default function ProfilePage() {
 
       const storedTz = localStorage.getItem('ziabl_user_timezone');
       if (storedTz) setSelectedTimezone(storedTz);
+
+      const storedClock = localStorage.getItem('ziabl_show_clock');
+      if (storedClock !== null) setShowClock(storedClock === 'true');
+
+      const storedCbr = localStorage.getItem('ziabl_show_cbr');
+      if (storedCbr !== null) setShowCbr(storedCbr === 'true');
     }
   }, []);
 
@@ -169,6 +178,41 @@ export default function ProfilePage() {
     setNewPassword('');
     setConfirmPassword('');
     setTimeout(() => setPasswordSuccess(false), 4000);
+  };
+
+  const handleToggleClock = () => {
+    const next = !showClock;
+    setShowClock(next);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ziabl_show_clock', String(next));
+      window.dispatchEvent(new Event('storage'));
+    }
+  };
+
+  const handleToggleCbr = () => {
+    const next = !showCbr;
+    setShowCbr(next);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ziabl_show_cbr', String(next));
+      window.dispatchEvent(new Event('storage'));
+    }
+  };
+
+  const handleConnectProvider = (provider: 'google' | 'github') => {
+    setConnectProviderModal(provider);
+  };
+
+  const confirmConnectProvider = () => {
+    if (!connectProviderModal) return;
+    const provider = connectProviderModal;
+    setLinkedAccounts((prev) => {
+      const next = { ...prev, [provider]: true };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ziabl_linked_providers', JSON.stringify(next));
+      }
+      return next;
+    });
+    setConnectProviderModal(null);
   };
 
   const handleSelectAvatar = (avatarId: string) => {
@@ -646,6 +690,57 @@ export default function ProfilePage() {
                   </select>
                 </div>
 
+                {/* Header Widgets Visibility Toggles */}
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    {t('headerWidgets')}
+                  </label>
+                  <p className="text-[11px] text-text-muted mb-2.5">
+                    {t('headerWidgetsDesc')}
+                  </p>
+                  <div className="space-y-2">
+                    <button
+                      type="button"
+                      onClick={handleToggleClock}
+                      className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium transition-all ${
+                        showClock
+                          ? 'bg-accent/10 border-accent/40 text-text-primary'
+                          : 'bg-surface-light border-surface-border text-text-muted'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 text-accent" />
+                        <span>{t('showClock')}</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        showClock ? 'bg-accent/20 text-accent' : 'bg-surface-border text-text-muted'
+                      }`}>
+                        {showClock ? 'ON' : 'OFF'}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleToggleCbr}
+                      className={`w-full flex items-center justify-between p-2.5 rounded-xl border text-xs font-medium transition-all ${
+                        showCbr
+                          ? 'bg-accent/10 border-accent/40 text-text-primary'
+                          : 'bg-surface-light border-surface-border text-text-muted'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <Percent className="w-4 h-4 text-accent" />
+                        <span>{t('showCbr')}</span>
+                      </div>
+                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                        showCbr ? 'bg-accent/20 text-accent' : 'bg-surface-border text-text-muted'
+                      }`}>
+                        {showCbr ? 'ON' : 'OFF'}
+                      </span>
+                    </button>
+                  </div>
+                </div>
+
                 <button type="submit" className="btn-primary w-full text-xs font-semibold py-2.5">
                   {t('saveChanges')}
                 </button>
@@ -718,7 +813,7 @@ export default function ProfilePage() {
                       if (linkedAccounts.google) {
                         setUnlinkProvider('google');
                       } else {
-                        setLinkedAccounts((prev) => ({ ...prev, google: true }));
+                        handleConnectProvider('google');
                       }
                     }}
                     className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
@@ -753,7 +848,7 @@ export default function ProfilePage() {
                       if (linkedAccounts.github) {
                         setUnlinkProvider('github');
                       } else {
-                        setLinkedAccounts((prev) => ({ ...prev, github: true }));
+                        handleConnectProvider('github');
                       }
                     }}
                     className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
@@ -1066,6 +1161,48 @@ export default function ProfilePage() {
                 className="w-1/2 py-2.5 px-3 rounded-xl text-xs font-semibold bg-danger text-white hover:bg-danger-dark transition-colors shadow-sm"
               >
                 {t('confirmDisconnectBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Account Connect Modal */}
+      {connectProviderModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="card max-w-sm w-full bg-surface border-surface-border p-6 shadow-2xl relative space-y-4 animate-scale-in">
+            <div className="flex items-center gap-3 text-text-primary font-bold text-base">
+              <Globe className="w-5 h-5 text-accent shrink-0" />
+              <span>
+                {t('oauthConnectTitle', {
+                  provider: connectProviderModal === 'google' ? 'Google' : 'GitHub',
+                })}
+              </span>
+            </div>
+
+            <p className="text-xs text-text-secondary leading-relaxed">
+              {t('oauthMockNote')}
+            </p>
+
+            <div className="p-3 bg-surface-light rounded-xl border border-surface-border text-[11px] text-text-muted space-y-1">
+              <div className="font-semibold text-text-primary">Провайдер: {connectProviderModal === 'google' ? 'Google OAuth 2.0' : 'GitHub OAuth'}</div>
+              <div>Email: {session.user.email}</div>
+            </div>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setConnectProviderModal(null)}
+                className="btn-secondary w-1/2 text-xs font-semibold py-2.5"
+              >
+                {t('cancelBtn')}
+              </button>
+              <button
+                type="button"
+                onClick={confirmConnectProvider}
+                className="btn-primary w-1/2 text-xs font-semibold py-2.5"
+              >
+                {t('connect')}
               </button>
             </div>
           </div>
