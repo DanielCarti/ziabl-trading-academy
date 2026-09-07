@@ -181,21 +181,11 @@ export default function ProfilePage() {
   };
 
   const handleToggleClock = () => {
-    const next = !showClock;
-    setShowClock(next);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ziabl_show_clock', String(next));
-      window.dispatchEvent(new Event('storage'));
-    }
+    setShowClock((prev) => !prev);
   };
 
   const handleToggleCbr = () => {
-    const next = !showCbr;
-    setShowCbr(next);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ziabl_show_cbr', String(next));
-      window.dispatchEvent(new Event('storage'));
-    }
+    setShowCbr((prev) => !prev);
   };
 
   const handleConnectProvider = (provider: 'google' | 'github') => {
@@ -217,18 +207,10 @@ export default function ProfilePage() {
 
   const handleSelectAvatar = (avatarId: string) => {
     setSelectedAvatar(avatarId);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ziabl_user_avatar', avatarId);
-      window.dispatchEvent(new Event('storage'));
-    }
   };
 
   const handleSelectTimezone = (tz: string) => {
     setSelectedTimezone(tz);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ziabl_user_timezone', tz);
-      window.dispatchEvent(new Event('storage'));
-    }
   };
 
   const confirmUnlink = () => {
@@ -324,6 +306,11 @@ export default function ProfilePage() {
 
     if (typeof window !== 'undefined') {
       localStorage.setItem('ziabl_user_name', nameInput.trim());
+      localStorage.setItem('ziabl_user_avatar', selectedAvatar);
+      localStorage.setItem('ziabl_user_timezone', selectedTimezone);
+      localStorage.setItem('ziabl_show_clock', String(showClock));
+      localStorage.setItem('ziabl_show_cbr', String(showCbr));
+      window.dispatchEvent(new Event('storage'));
     }
 
     if (update) {
