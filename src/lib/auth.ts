@@ -117,16 +117,21 @@ export const authOptions: AuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user }) {
+    async jwt({ token, user, trigger, session }) {
       if (user) {
         token.id = user.id;
+        token.name = user.name;
         token.role = (user as any).role || (user.email?.toLowerCase() === adminEmail ? 'ADMIN' : 'USER');
+      }
+      if (trigger === 'update' && session?.name) {
+        token.name = session.name;
       }
       return token;
     },
     async session({ session, token }) {
       if (session.user) {
         (session.user as any).id = token.id;
+        if (token.name) session.user.name = token.name as string;
         (session.user as any).role = token.role;
       }
       return session;

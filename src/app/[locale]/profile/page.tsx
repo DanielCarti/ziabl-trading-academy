@@ -1,4 +1,4 @@
-﻿'use client';
+'use client';
 
 import { useSession, signOut } from 'next-auth/react';
 import { useTranslations, useLocale } from 'next-intl';
@@ -15,7 +15,7 @@ import { startNavigationProgress } from '@/components/layout/NavigationProgress'
 import { mockModules } from '@/lib/mockData';
 
 export default function ProfilePage() {
-  const { data: session, status } = useSession();
+  const { data: session, status, update } = useSession();
   const t = useTranslations('profile');
   const navT = useTranslations('nav');
   const locale = useLocale();
@@ -39,7 +39,10 @@ export default function ProfilePage() {
   }, [status, router, locale]);
 
   useEffect(() => {
-    if (session?.user?.name) {
+    const localName = typeof window !== 'undefined' ? localStorage.getItem('ziabl_user_name') : null;
+    if (localName) {
+      setNameInput(localName);
+    } else if (session?.user?.name) {
       setNameInput(session.user.name);
     }
   }, [session]);
@@ -60,8 +63,18 @@ export default function ProfilePage() {
       .catch(() => {});
   }, []);
 
-  const handleSaveSettings = (e: React.FormEvent) => {
+  const handleSaveSettings = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!nameInput.trim()) return;
+
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ziabl_user_name', nameInput.trim());
+    }
+
+    if (update) {
+      await update({ name: nameInput.trim() });
+    }
+
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 3000);
   };
@@ -100,13 +113,13 @@ export default function ProfilePage() {
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-5">
               <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 border-2 border-accent/40 flex items-center justify-center text-accent text-3xl font-extrabold shadow-lg shadow-accent/10">
-                {(session.user.name || session.user.email || 'U')[0].toUpperCase()}
+                {(nameInput || session.user.name || session.user.email || 'U')[0].toUpperCase()}
               </div>
 
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
                   <h1 className="text-2xl sm:text-3xl font-bold text-text-primary">
-                    {session.user.name || 'Студент Ziabl'}
+                    {nameInput || session.user.name || 'Студент Ziabl'}
                   </h1>
                   <span
                     className={`text-xs px-2.5 py-0.5 rounded-full font-semibold uppercase tracking-wider ${

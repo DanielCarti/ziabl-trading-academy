@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations, useLocale } from 'next-intl';
@@ -8,7 +8,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import {
   TrendingUp, BookOpen, GraduationCap, Calculator, PlayCircle,
-  Menu, X, User, LogOut, LayoutDashboard
+  Menu, X, User, LogOut, LayoutDashboard, ChevronDown
 } from 'lucide-react';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 import { startNavigationProgress } from '@/components/layout/NavigationProgress';
@@ -20,6 +20,17 @@ export default function Header() {
   const router = useRouter();
   const { data: session } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [profileDropdown, setProfileDropdown] = useState(false);
+  const [displayName, setDisplayName] = useState<string | null>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem('ziabl_user_name');
+    if (saved) {
+      setDisplayName(saved);
+    } else if (session?.user?.name) {
+      setDisplayName(session.user.name);
+    }
+  }, [session]);
 
   const otherLocale = locale === 'ru' ? 'en' : 'ru';
   const switchLocale = () => {
@@ -118,36 +129,66 @@ export default function Header() {
 
             {/* Auth */}
             {session?.user ? (
-              <div className="relative">
-                <div className="flex items-center gap-2">
-                  {(session.user as any).role === 'ADMIN' && (
-                    <Link href="/admin" className="btn-ghost text-sm hidden lg:inline-flex">
-                      <LayoutDashboard className="w-4 h-4" />
-                      {t('admin')}
-                    </Link>
-                  )}
-                  
-                  <Link
-                    href={`/${locale}/profile`}
-                    className="flex items-center gap-2 px-3 py-1.5 bg-surface-light hover:bg-surface rounded-xl border border-surface-border hover:border-accent/40 transition-all duration-200 group shadow-sm"
-                    title={t('profile')}
-                  >
-                    <div className="w-6 h-6 rounded-full bg-accent/15 text-accent flex items-center justify-center font-bold text-xs">
-                      {(session.user.name || session.user.email || 'U')[0].toUpperCase()}
-                    </div>
-                    <span className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors max-w-[130px] truncate">
-                      {session.user.name || session.user.email}
-                    </span>
-                  </Link>
+              <div
+                className="relative group"
+                onMouseEnter={() => setProfileDropdown(true)}
+                onMouseLeave={() => setProfileDropdown(false)}
+              >
+                <button
+                  onClick={() => setProfileDropdown((prev) => !prev)}
+                  className="flex items-center gap-2 px-3 py-1.5 bg-surface-light hover:bg-surface rounded-xl border border-surface-border hover:border-accent/40 transition-all duration-200 shadow-sm cursor-pointer"
+                >
+                  <div className="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center font-bold text-xs border border-accent/30">
+                    {(displayName || session.user.name || session.user.email || 'U')[0].toUpperCase()}
+                  </div>
+                  <span className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors max-w-[130px] truncate">
+                    {displayName || session.user.name || session.user.email}
+                  </span>
+                  <ChevronDown className={`w-3.5 h-3.5 text-text-muted transition-transform duration-200 ${profileDropdown ? 'rotate-180' : ''}`} />
+                </button>
 
-                  <button
-                    onClick={() => signOut({ callbackUrl: `/${locale}` })}
-                    className="btn-ghost text-sm text-danger/80 hover:text-danger hover:bg-danger/10 !p-2"
-                    title={t('signout')}
-                  >
-                    <LogOut className="w-4 h-4" />
-                  </button>
-                </div>
+                {/* Dropdown Menu on Hover / Click */}
+                {profileDropdown && (
+                  <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-surface-border rounded-xl shadow-2xl p-2 z-50 animate-fade-in space-y-1">
+                    <div className="px-3 py-2 border-b border-surface-border/60 mb-1">
+                      <div className="text-xs font-semibold text-text-primary truncate">{displayName || session.user.name || 'Пользователь'}</div>
+                      <div className="text-[11px] text-text-muted truncate">{session.user.email}</div>
+                    </div>
+
+                    <Link
+                      href={`/${locale}/profile`}
+                      onClick={() => setProfileDropdown(false)}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
+                    >
+                      <User className="w-4 h-4 text-accent" />
+                      <span>Мой профиль</span>
+                    </Link>
+
+                    {(session.user as any).role === 'ADMIN' && (
+                      <Link
+                        href="/admin"
+                        onClick={() => setProfileDropdown(false)}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-chart-blue hover:bg-chart-blue/10 transition-colors"
+                      >
+                        <LayoutDashboard className="w-4 h-4 text-chart-blue" />
+                        <span>Панель управления</span>
+                      </Link>
+                    )}
+
+                    <hr className="border-surface-border/60 my-1" />
+
+                    <button
+                      onClick={() => {
+                        setProfileDropdown(false);
+                        signOut({ callbackUrl: `/${locale}` });
+                      }}
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-danger hover:bg-danger/10 transition-colors w-full text-left"
+                    >
+                      <LogOut className="w-4 h-4" />
+                      <span>{t('signout')}</span>
+                    </button>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex items-center gap-2">
