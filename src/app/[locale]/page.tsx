@@ -2,6 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { getTranslations } from 'next-intl/server';
 import { getLocalizedField } from '@/lib/utils';
 import HeroSection from '@/components/home/HeroSection';
+import MarketTicker from '@/components/home/MarketTicker';
 import FeaturesGrid from '@/components/home/FeaturesGrid';
 import Link from 'next/link';
 import { BookOpen, ArrowRight } from 'lucide-react';
@@ -31,6 +32,7 @@ export default async function HomePage({ params: { locale } }: { params: { local
   return (
     <div className="min-h-screen">
       <HeroSection />
+      <MarketTicker />
 
       {/* Stats */}
       <section className="py-12 border-b border-surface-border">

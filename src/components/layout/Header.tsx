@@ -138,18 +138,36 @@ export default function Header() {
                 onMouseEnter={() => setProfileDropdown(true)}
                 onMouseLeave={() => setProfileDropdown(false)}
               >
-                <button
-                  onClick={() => setProfileDropdown((prev) => !prev)}
-                  className="flex items-center gap-2 px-3 py-1.5 bg-surface-light hover:bg-surface rounded-xl border border-surface-border hover:border-accent/40 transition-all duration-200 shadow-sm cursor-pointer"
-                >
-                  <div className="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center font-bold text-xs border border-accent/30">
-                    {(displayName || session.user.name || session.user.email || 'U')[0].toUpperCase()}
-                  </div>
-                  <span className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors max-w-[130px] truncate">
-                    {displayName || session.user.name || session.user.email}
-                  </span>
-                  <ChevronDown className={`w-3.5 h-3.5 text-text-muted transition-transform duration-200 ${profileDropdown ? 'rotate-180' : ''}`} />
-                </button>
+                <div className="flex items-center bg-surface-light hover:bg-surface rounded-xl border border-surface-border hover:border-accent/40 transition-all duration-200 shadow-sm overflow-hidden group">
+                  <Link
+                    href={`/${locale}/profile`}
+                    onClick={() => {
+                      setProfileDropdown(false);
+                      startNavigationProgress();
+                    }}
+                    title="Перейти в личный кабинет"
+                    className="flex items-center gap-2 pl-3 pr-1 py-1.5 cursor-pointer"
+                  >
+                    <div className="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center font-bold text-xs border border-accent/30 group-hover:scale-105 transition-transform">
+                      {(displayName || session.user.name || session.user.email || 'U')[0].toUpperCase()}
+                    </div>
+                    <span className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors max-w-[130px] truncate">
+                      {displayName || session.user.name || session.user.email}
+                    </span>
+                  </Link>
+
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setProfileDropdown((prev) => !prev);
+                    }}
+                    title="Открыть меню профиля"
+                    className="px-2 py-2 hover:bg-surface-border/40 text-text-muted hover:text-text-primary transition-colors cursor-pointer border-l border-surface-border/50"
+                  >
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${profileDropdown ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
 
                 {/* Dropdown Menu on Hover / Click with invisible bridge to prevent mouse leave */}
                 {profileDropdown && (
