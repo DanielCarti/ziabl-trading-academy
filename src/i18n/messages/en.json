@@ -134,8 +134,14 @@
   },
   "footer": {
     "rights": "All rights reserved",
-    "disclaimer": "Platform materials are for educational purposes only and do not constitute investment advice.",
-    "tagline": "Trading and Investment Education"
+    "disclaimer": "Platform materials are for educational purposes only and do not constitute investment advice. Trading in financial markets involves risk of capital loss.",
+    "tagline": "Free educational platform for trading and investment learning.",
+    "navigation": "Navigation",
+    "info": "Information",
+    "courses": "Courses",
+    "simulator": "Simulator",
+    "glossary": "Glossary",
+    "calculators": "Calculators"
   },
   "simulator": {
     "title": "Trading Simulator",

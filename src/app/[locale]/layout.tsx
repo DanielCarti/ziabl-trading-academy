@@ -5,6 +5,7 @@ import { locales } from '@/i18n/request';
 import AuthProvider from '@/components/providers/AuthProvider';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import NavigationProgress from '@/components/layout/NavigationProgress';
 
 export default async function LocaleLayout({
   children,
@@ -18,18 +19,15 @@ export default async function LocaleLayout({
   const messages = await getMessages();
 
   return (
-    <html lang={locale} className="dark">
-      <body className="min-h-screen flex flex-col bg-background text-text-primary">
-        <AuthProvider>
-          <NextIntlClientProvider messages={messages}>
-            <Header />
-            <main className="flex-1 pt-16">
-              {children}
-            </main>
-            <Footer />
-          </NextIntlClientProvider>
-        </AuthProvider>
-      </body>
-    </html>
+    <AuthProvider>
+      <NextIntlClientProvider locale={locale} messages={messages}>
+        <NavigationProgress />
+        <Header />
+        <main className="flex-1 pt-16">
+          {children}
+        </main>
+        <Footer />
+      </NextIntlClientProvider>
+    </AuthProvider>
   );
 }

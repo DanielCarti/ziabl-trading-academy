@@ -10,14 +10,14 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        background: '#0a0a0f',
-        surface: '#12121a',
-        'surface-light': '#1a1a28',
-        'surface-border': '#2a2a3a',
+        background: 'rgb(var(--color-bg) / <alpha-value>)',
+        surface: 'rgb(var(--color-surface) / <alpha-value>)',
+        'surface-light': 'rgb(var(--color-surface-light) / <alpha-value>)',
+        'surface-border': 'rgb(var(--color-surface-border) / <alpha-value>)',
         accent: {
-          DEFAULT: '#00d4aa',
-          light: '#00f0c0',
-          dark: '#00a888',
+          DEFAULT: '#00c598',
+          light: '#00e5b3',
+          dark: '#009673',
         },
         danger: {
           DEFAULT: '#ff4757',
@@ -29,12 +29,12 @@ const config: Config = {
           light: '#ffb732',
         },
         text: {
-          primary: '#e4e4e7',
-          secondary: '#71717a',
-          muted: '#52525b',
+          primary: 'rgb(var(--color-text-primary) / <alpha-value>)',
+          secondary: 'rgb(var(--color-text-secondary) / <alpha-value>)',
+          muted: 'rgb(var(--color-text-muted) / <alpha-value>)',
         },
         chart: {
-          green: '#00d4aa',
+          green: '#00c598',
           red: '#ff4757',
           blue: '#3b82f6',
           yellow: '#fbbf24',

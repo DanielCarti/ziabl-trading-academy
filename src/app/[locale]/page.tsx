@@ -10,7 +10,7 @@ export default async function HomePage({ params: { locale } }: { params: { local
   const t = await getTranslations('home');
   const tCourses = await getTranslations('courses');
 
-  let modules = [];
+  let modules: any[] = [];
   try {
     modules = await prisma.module.findMany({
       where: { published: true },

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useTranslations } from 'next-intl';
 import { formatNumber } from '@/lib/utils';
-import { Play, Pause, RotateCcw, TrendingUp, TrendingDown, DollarSign, Wallet } from 'lucide-react';
+import { Play, Pause, RotateCcw, TrendingUp, TrendingDown, DollarSign, Wallet, CheckCircle2, AlertCircle } from 'lucide-react';
 
 interface CandleData {
   time: string;
@@ -52,7 +52,7 @@ function createMarketData(): CandleData[] {
 
 export default function TradingSimulator() {
   const t = useTranslations('simulator');
-  const fullDataRef = useRef<CandleData[]>([]);
+  const fullDataRef = useRef<CandleData[]>(createMarketData());
   const containerRef = useRef<HTMLDivElement>(null);
   const chartInstanceRef = useRef<any>(null);
   const seriesRef = useRef<any>(null);
@@ -66,10 +66,12 @@ export default function TradingSimulator() {
   const [balance, setBalance] = useState(initialBalance);
   const [shares, setShares] = useState(0);
   const [trades, setTrades] = useState<Trade[]>([]);
+  const [feedback, setFeedback] = useState<{ msg: string; type: 'success' | 'error' } | null>(null);
 
-  useEffect(() => {
-    fullDataRef.current = createMarketData();
-  }, []);
+  const showFeedback = (msg: string, type: 'success' | 'error') => {
+    setFeedback({ msg, type });
+    setTimeout(() => setFeedback(null), 3500);
+  };
 
   useEffect(() => {
     let chart: any = null;
@@ -146,15 +148,18 @@ export default function TradingSimulator() {
     return () => clearInterval(interval);
   }, [isPlaying, speed]);
 
-  const currentCandle = fullDataRef.current[currentIndex] || fullDataRef.current[0];
-  const currentPrice = currentCandle ? currentCandle.close : 0;
+  const currentCandle = fullDataRef.current[currentIndex] || fullDataRef.current[0] || { close: 250, time: '2024-01-02' };
+  const currentPrice = currentCandle.close || 250;
   const portfolioValue = balance + shares * currentPrice;
   const pnl = portfolioValue - initialBalance;
   const pnlPercent = (pnl / initialBalance) * 100;
 
   const handleBuy = (amount: number = 10) => {
     const cost = amount * currentPrice;
-    if (balance < cost) return;
+    if (balance < cost) {
+      showFeedback(`Недостаточно средств для покупки ${amount} шт. Требуется ₽${cost.toFixed(2)}, доступно ₽${balance.toFixed(2)}`, 'error');
+      return;
+    }
 
     setBalance((b) => b - cost);
     setShares((s) => s + amount);
@@ -168,11 +173,15 @@ export default function TradingSimulator() {
       },
       ...tList,
     ]);
+    showFeedback(`Успешно куплено ${amount} шт. по цене ₽${currentPrice.toFixed(2)}`, 'success');
   };
 
   const handleSell = (amount: number = 10) => {
     const sellCount = Math.min(shares, amount);
-    if (sellCount <= 0) return;
+    if (sellCount <= 0) {
+      showFeedback('У вас нет акций в портфеле для продажи', 'error');
+      return;
+    }
 
     const revenue = sellCount * currentPrice;
     setBalance((b) => b + revenue);
@@ -187,6 +196,7 @@ export default function TradingSimulator() {
       },
       ...tList,
     ]);
+    showFeedback(`Успешно продано ${sellCount} шт. по цене ₽${currentPrice.toFixed(2)}`, 'success');
   };
 
   const handleReset = () => {
@@ -202,6 +212,7 @@ export default function TradingSimulator() {
         chartInstanceRef.current.timeScale().fitContent();
       }
     }
+    showFeedback('Симулятор успешно сброшен к начальному состоянию', 'success');
   };
 
   return (
@@ -242,6 +253,24 @@ export default function TradingSimulator() {
           </div>
         </div>
       </div>
+
+      {/* Notification Toast / Alert */}
+      {feedback && (
+        <div
+          className={`flex items-center gap-2.5 px-4 py-3 rounded-lg border text-sm animate-fade-in ${
+            feedback.type === 'success'
+              ? 'bg-accent/10 border-accent/30 text-accent font-medium'
+              : 'bg-danger/10 border-danger/30 text-danger font-medium'
+          }`}
+        >
+          {feedback.type === 'success' ? (
+            <CheckCircle2 className="w-5 h-5 shrink-0" />
+          ) : (
+            <AlertCircle className="w-5 h-5 shrink-0" />
+          )}
+          <span>{feedback.msg}</span>
+        </div>
+      )}
 
       {/* Playback Controls and Action Buttons */}
       <div className="flex flex-wrap items-center justify-between gap-4">

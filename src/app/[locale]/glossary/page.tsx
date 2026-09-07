@@ -4,7 +4,7 @@ import GlossaryClient from '@/components/glossary/GlossaryClient';
 
 export default async function GlossaryPage({ params: { locale } }: { params: { locale: string } }) {
   const t = await getTranslations('glossary');
-  let terms = [];
+  let terms: any[] = [];
   try {
     terms = await prisma.glossaryTerm.findMany({ orderBy: { termRu: 'asc' } });
   } catch (err) {

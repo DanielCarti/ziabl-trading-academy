@@ -48,7 +48,7 @@ export default async function LessonPage({
   if (!lesson) notFound();
 
   const moduleLessons = lesson.module.lessons;
-  const currentIndex = moduleLessons.findIndex((l) => l.slug === slug);
+  const currentIndex = moduleLessons.findIndex((l: any) => l.slug === slug);
   const prevLesson = currentIndex > 0 ? moduleLessons[currentIndex - 1] : null;
   const nextLesson = currentIndex < moduleLessons.length - 1 ? moduleLessons[currentIndex + 1] : null;
 
@@ -69,7 +69,7 @@ export default async function LessonPage({
                 </h3>
                 <p className="text-sm text-text-primary font-medium mb-4">{moduleTitle}</p>
                 <div className="space-y-1">
-                  {moduleLessons.map((l) => (
+                  {moduleLessons.map((l: any) => (
                     <Link
                       key={l.id}
                       href={`/${locale}/lesson/${l.slug}`}

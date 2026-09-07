@@ -7,7 +7,7 @@ import { BookOpen, CheckCircle2, ChevronRight } from 'lucide-react';
 export default async function CoursesPage({ params: { locale } }: { params: { locale: string } }) {
   const t = await getTranslations('courses');
 
-  let modules = [];
+  let modules: any[] = [];
   try {
     modules = await prisma.module.findMany({
       where: { published: true },
@@ -69,7 +69,7 @@ export default async function CoursesPage({ params: { locale } }: { params: { lo
 
               {/* Lessons List */}
               <div className="ml-12 space-y-1">
-                {mod.lessons.map((lesson) => (
+                {mod.lessons.map((lesson: any) => (
                   <Link
                     key={lesson.id}
                     href={`/${locale}/lesson/${lesson.slug}`}
