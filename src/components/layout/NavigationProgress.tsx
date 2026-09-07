@@ -16,21 +16,28 @@ export default function NavigationProgress() {
 
   const triggerProgress = () => {
     setLoading(true);
-    setProgress(25);
-    setTimeout(() => setProgress(65), 120);
-    setTimeout(() => setProgress(85), 350);
-  };
+    setProgress(30);
+    setTimeout(() => setProgress((prev) => (prev > 0 ? 70 : 0)), 100);
+    setTimeout(() => setProgress((prev) => (prev > 0 ? 88 : 0)), 280);
 
-  // When pathname changes, finish the progress bar
-  useEffect(() => {
-    if (loading) {
+    // Safety timeout: ensure progress bar never hangs indefinitely even on fast or same-chunk transitions
+    setTimeout(() => {
       setProgress(100);
-      const timer = setTimeout(() => {
+      setTimeout(() => {
         setLoading(false);
         setProgress(0);
       }, 250);
-      return () => clearTimeout(timer);
-    }
+    }, 700);
+  };
+
+  // When pathname changes, complete and clear the progress bar
+  useEffect(() => {
+    setProgress(100);
+    const timer = setTimeout(() => {
+      setLoading(false);
+      setProgress(0);
+    }, 250);
+    return () => clearTimeout(timer);
   }, [pathname]);
 
   // Listen to custom navigation events
