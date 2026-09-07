@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { usePathname } from 'next/navigation';
 
 export function startNavigationProgress() {
@@ -13,32 +13,54 @@ export default function NavigationProgress() {
   const pathname = usePathname();
   const [loading, setLoading] = useState(false);
   const [progress, setProgress] = useState(0);
+  const timerRefs = useRef<NodeJS.Timeout[]>([]);
 
-  const triggerProgress = () => {
-    setLoading(true);
-    setProgress(30);
-    setTimeout(() => setProgress((prev) => (prev > 0 ? 70 : 0)), 100);
-    setTimeout(() => setProgress((prev) => (prev > 0 ? 88 : 0)), 280);
-
-    // Safety timeout: ensure progress bar never hangs indefinitely even on fast or same-chunk transitions
-    setTimeout(() => {
-      setProgress(100);
-      setTimeout(() => {
-        setLoading(false);
-        setProgress(0);
-      }, 250);
-    }, 700);
+  const clearAllTimers = () => {
+    timerRefs.current.forEach((t) => clearTimeout(t));
+    timerRefs.current = [];
   };
 
-  // When pathname changes, complete and clear the progress bar
-  useEffect(() => {
+  const triggerProgress = () => {
+    clearAllTimers();
+    setLoading(true);
+    setProgress(35);
+
+    // Realistic progressive loading: move forward smoothly but DO NOT complete prematurely
+    const t1 = setTimeout(() => setProgress(65), 180);
+    const t2 = setTimeout(() => setProgress(82), 400);
+    const t3 = setTimeout(() => setProgress(92), 900);
+    // Slow crawl while waiting for heavy data or slow network:
+    const t4 = setTimeout(() => setProgress(96), 2500);
+
+    // Safety fallback: only auto-complete after 8 seconds if route never changed
+    const tFallback = setTimeout(() => {
+      completeProgress();
+    }, 8000);
+
+    timerRefs.current = [t1, t2, t3, t4, tFallback];
+  };
+
+  const completeProgress = () => {
+    clearAllTimers();
     setProgress(100);
-    const timer = setTimeout(() => {
+    const endTimer = setTimeout(() => {
       setLoading(false);
       setProgress(0);
-    }, 250);
-    return () => clearTimeout(timer);
+    }, 300);
+    timerRefs.current.push(endTimer);
+  };
+
+  // When pathname changes (the actual page has finished loading and mounting), finish progress
+  useEffect(() => {
+    if (loading || progress > 0) {
+      completeProgress();
+    }
   }, [pathname]);
+
+  // Cleanup timers on unmount
+  useEffect(() => {
+    return () => clearAllTimers();
+  }, []);
 
   // Listen to custom navigation events
   useEffect(() => {
