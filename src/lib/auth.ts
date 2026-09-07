@@ -9,30 +9,9 @@ import { prisma } from '@/lib/prisma';
 
 const adminEmail = (process.env.ADMIN_EMAIL || 'admin@ziabl.ru').toLowerCase();
 
-// Safe PrismaAdapter that gracefully handles database connection failures in dev
-function createSafePrismaAdapter() {
-  const baseAdapter = PrismaAdapter(prisma) as any;
-  const safeAdapter: any = {};
-  for (const [key, fn] of Object.entries(baseAdapter)) {
-    if (typeof fn === 'function') {
-      safeAdapter[key] = async (...args: any[]) => {
-        try {
-          return await (fn as any)(...args);
-        } catch (err: any) {
-          console.warn(`[SafePrismaAdapter] DB operation ${key} bypassed: ${err?.message || err}`);
-          // Return null/undefined so NextAuth proceeds with JWT without crashing
-          return null;
-        }
-      };
-    } else {
-      safeAdapter[key] = fn;
-    }
-  }
-  return safeAdapter;
-}
-
 export const authOptions: AuthOptions = {
-  adapter: createSafePrismaAdapter(),
+  // Pure JWT strategy allows social logins (Yandex, Google, GitHub) to work instantly
+  // even without an active local PostgreSQL server
   session: {
     strategy: 'jwt',
   },
