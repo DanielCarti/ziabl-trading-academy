@@ -8,7 +8,7 @@ import { useSession, signOut } from 'next-auth/react';
 import { cn } from '@/lib/utils';
 import {
   TrendingUp, BookOpen, GraduationCap, Calculator, PlayCircle,
-  Menu, X, User, LogOut, LayoutDashboard, ChevronDown
+  Menu, X, User, LogOut, LayoutDashboard, ChevronDown, Clock, Percent
 } from 'lucide-react';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 import { startNavigationProgress } from '@/components/layout/NavigationProgress';
@@ -22,15 +22,74 @@ export default function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileDropdown, setProfileDropdown] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
+  const [userAvatar, setUserAvatar] = useState<string>('avatar-1');
+  const [userTimezone, setUserTimezone] = useState<string>('Europe/Moscow');
+  const [cbrRate, setCbrRate] = useState<number | null>(null);
+  const [clockTime, setClockTime] = useState<string>('');
+  const [clockDate, setClockDate] = useState<string>('');
 
+  // Load avatar, name, and timezone
   useEffect(() => {
-    const saved = localStorage.getItem('ziabl_user_name');
-    if (saved) {
-      setDisplayName(saved);
-    } else if (session?.user?.name) {
-      setDisplayName(session.user.name);
-    }
+    const updateLocalPreferences = () => {
+      const savedName = localStorage.getItem('ziabl_user_name');
+      if (savedName) setDisplayName(savedName);
+      else if (session?.user?.name) setDisplayName(session.user.name);
+
+      const savedAvatar = localStorage.getItem('ziabl_user_avatar');
+      if (savedAvatar) setUserAvatar(savedAvatar);
+
+      const savedTz = localStorage.getItem('ziabl_user_timezone');
+      if (savedTz) setUserTimezone(savedTz);
+    };
+
+    updateLocalPreferences();
+    window.addEventListener('storage', updateLocalPreferences);
+    return () => window.removeEventListener('storage', updateLocalPreferences);
   }, [session]);
+
+  // Fetch CBR Key Rate
+  useEffect(() => {
+    fetch('/api/cbr')
+      .then((res) => res.json())
+      .then((data) => {
+        if (data && typeof data.rate === 'number') {
+          setCbrRate(data.rate);
+        }
+      })
+      .catch(() => setCbrRate(18.0));
+  }, []);
+
+  // Update live clock every second with user timezone
+  useEffect(() => {
+    const updateTime = () => {
+      try {
+        const now = new Date();
+        const timeStr = new Intl.DateTimeFormat('ru-RU', {
+          timeZone: userTimezone,
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }).format(now);
+
+        const dateStr = new Intl.DateTimeFormat(locale === 'ru' ? 'ru-RU' : 'en-US', {
+          timeZone: userTimezone,
+          day: 'numeric',
+          month: 'short',
+        }).format(now);
+
+        setClockTime(timeStr);
+        setClockDate(dateStr);
+      } catch (e) {
+        const now = new Date();
+        setClockTime(now.toLocaleTimeString());
+        setClockDate(now.toLocaleDateString());
+      }
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 1000);
+    return () => clearInterval(timer);
+  }, [userTimezone, locale]);
 
   const otherLocale = locale === 'ru' ? 'en' : 'ru';
   const switchLocale = () => {
@@ -92,6 +151,35 @@ export default function Header() {
 
           {/* Right side */}
           <div className="hidden md:flex items-center gap-2.5">
+            {/* Live Clock & Timezone Display */}
+            {clockTime && (
+              <div
+                title={`Время по часовому поясу: ${userTimezone}. Настроить можно в личном кабинете.`}
+                className="flex items-center gap-2 px-2.5 py-1 rounded-xl bg-surface-light/80 border border-surface-border/70 text-right select-none"
+              >
+                <Clock className="w-3.5 h-3.5 text-accent shrink-0" />
+                <div className="flex flex-col leading-none">
+                  <span className="font-mono text-xs font-bold text-text-primary tracking-wide">
+                    {clockTime}
+                  </span>
+                  <span className="text-[10px] text-text-muted mt-0.5 font-medium">
+                    {clockDate}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            {/* Central Bank of Russia Key Rate Live Widget */}
+            <div
+              title="Текущая ключевая ставка ЦБ РФ (данные Банка России cbr.ru)"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-surface-light/80 border border-surface-border/70 text-xs select-none hover:border-accent/40 transition-colors"
+            >
+              <span className="text-[11px] font-semibold text-text-muted uppercase">ЦБ РФ:</span>
+              <span className="font-mono font-bold text-accent">
+                {cbrRate !== null ? `${cbrRate.toFixed(1)}%` : '18.0%'}
+              </span>
+            </div>
+
             {/* Theme Toggle Button */}
             <ThemeToggle />
 
@@ -148,8 +236,8 @@ export default function Header() {
                     title="Перейти в личный кабинет"
                     className="flex items-center gap-2 pl-3 pr-1 py-1.5 cursor-pointer"
                   >
-                    <div className="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center font-bold text-xs border border-accent/30 group-hover:scale-105 transition-transform">
-                      {(displayName || session.user.name || session.user.email || 'U')[0].toUpperCase()}
+                    <div className="w-7 h-7 rounded-full bg-accent/15 text-accent flex items-center justify-center font-bold text-xs border border-accent/30 group-hover:scale-105 transition-transform text-sm">
+                      {userAvatar === 'avatar-1' ? '🐂' : userAvatar === 'avatar-2' ? '🐻' : userAvatar === 'avatar-3' ? '🐋' : userAvatar === 'avatar-4' ? '🐺' : userAvatar === 'avatar-5' ? '🚀' : userAvatar === 'avatar-6' ? '⚡' : (displayName || session.user.name || session.user.email || 'U')[0].toUpperCase()}
                     </div>
                     <span className="text-sm font-medium text-text-primary group-hover:text-accent transition-colors max-w-[130px] truncate">
                       {displayName || session.user.name || session.user.email}

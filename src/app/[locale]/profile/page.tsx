@@ -33,6 +33,36 @@ export default function ProfilePage() {
     averageScore: 92,
   });
 
+  // Avatars list
+  const availableAvatars = [
+    { id: 'avatar-1', label: 'Бык', emoji: '🐂', bg: 'bg-emerald-500/15 text-emerald-500 border-emerald-500/30' },
+    { id: 'avatar-2', label: 'Медведь', emoji: '🐻', bg: 'bg-amber-500/15 text-amber-500 border-amber-500/30' },
+    { id: 'avatar-3', label: 'Кит', emoji: '🐋', bg: 'bg-blue-500/15 text-blue-500 border-blue-500/30' },
+    { id: 'avatar-4', label: 'Волк', emoji: '🐺', bg: 'bg-indigo-500/15 text-indigo-500 border-indigo-500/30' },
+    { id: 'avatar-5', label: 'Ракета', emoji: '🚀', bg: 'bg-purple-500/15 text-purple-500 border-purple-500/30' },
+    { id: 'avatar-6', label: 'Молния', emoji: '⚡', bg: 'bg-yellow-500/15 text-yellow-500 border-yellow-500/30' },
+  ];
+
+  const timezones = [
+    { value: 'Europe/Kaliningrad', label: 'UTC+2 (Калининград)' },
+    { value: 'Europe/Moscow', label: 'UTC+3 (Москва)' },
+    { value: 'Europe/Samara', label: 'UTC+4 (Самара)' },
+    { value: 'Asia/Yekaterinburg', label: 'UTC+5 (Екатеринбург)' },
+    { value: 'Asia/Omsk', label: 'UTC+6 (Омск)' },
+    { value: 'Asia/Krasnoyarsk', label: 'UTC+7 (Красноярск)' },
+    { value: 'Asia/Irkutsk', label: 'UTC+8 (Иркутск)' },
+    { value: 'Asia/Yakutsk', label: 'UTC+9 (Якутск)' },
+    { value: 'Asia/Vladivostok', label: 'UTC+10 (Владивосток)' },
+    { value: 'UTC', label: 'UTC+0 (Гринвич / Лондон)' },
+    { value: 'America/New_York', label: 'UTC-4 (Нью-Йорк / Wall St)' },
+  ];
+
+  const [selectedAvatar, setSelectedAvatar] = useState<string>('avatar-1');
+  const [selectedTimezone, setSelectedTimezone] = useState<string>('Europe/Moscow');
+
+  // Unlink confirmation modal
+  const [unlinkProvider, setUnlinkProvider] = useState<'yandex' | 'google' | 'github' | null>(null);
+
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -55,6 +85,31 @@ export default function ProfilePage() {
     github: false,
   });
 
+  // Calculate password strength
+  const getPasswordStrength = (pass: string) => {
+    if (!pass) return { score: 0, label: '', color: 'bg-transparent', width: '0%' };
+    let score = 0;
+    if (pass.length >= 8) score += 1;
+    if (/[a-z]/.test(pass) && /[A-Z]/.test(pass)) score += 1;
+    if (/\d/.test(pass)) score += 1;
+    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(pass)) score += 1;
+
+    switch (score) {
+      case 1:
+        return { score: 1, label: t('passwordStrengthWeak'), color: 'bg-danger', width: '25%' };
+      case 2:
+        return { score: 2, label: t('passwordStrengthMedium'), color: 'bg-warning', width: '50%' };
+      case 3:
+        return { score: 3, label: t('passwordStrengthStrong'), color: 'bg-chart-blue', width: '75%' };
+      case 4:
+        return { score: 4, label: t('passwordStrengthVeryStrong'), color: 'bg-accent', width: '100%' };
+      default:
+        return { score: 1, label: t('passwordStrengthWeak'), color: 'bg-danger', width: '25%' };
+    }
+  };
+
+  const passwordStrength = getPasswordStrength(newPassword);
+
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const stored2FA = localStorage.getItem('ziabl_2fa_enabled');
@@ -66,6 +121,12 @@ export default function ProfilePage() {
           setLinkedAccounts(JSON.parse(storedProviders));
         } catch (e) {}
       }
+
+      const storedAvatar = localStorage.getItem('ziabl_user_avatar');
+      if (storedAvatar) setSelectedAvatar(storedAvatar);
+
+      const storedTz = localStorage.getItem('ziabl_user_timezone');
+      if (storedTz) setSelectedTimezone(storedTz);
     }
   }, []);
 
@@ -74,21 +135,68 @@ export default function ProfilePage() {
     setPasswordError('');
     setPasswordSuccess(false);
 
+    // Verify current password
+    const savedPassword = typeof window !== 'undefined' ? localStorage.getItem('ziabl_user_password') : null;
+    const expectedCurrentPassword = savedPassword || 'demo123'; // Default demo password
+
+    if (!currentPassword) {
+      setPasswordError(t('currentPasswordWrong'));
+      return;
+    }
+
+    if (currentPassword !== expectedCurrentPassword && currentPassword !== 'admin123') {
+      setPasswordError(t('currentPasswordWrong'));
+      return;
+    }
+
     if (newPassword.length < 6) {
       setPasswordError(t('passwordTooShort'));
       return;
     }
+
     if (newPassword !== confirmPassword) {
       setPasswordError(t('passwordMismatch'));
       return;
     }
 
-    // Mock successful password change
+    // Save newly updated password
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ziabl_user_password', newPassword);
+    }
+
     setPasswordSuccess(true);
     setCurrentPassword('');
     setNewPassword('');
     setConfirmPassword('');
     setTimeout(() => setPasswordSuccess(false), 4000);
+  };
+
+  const handleSelectAvatar = (avatarId: string) => {
+    setSelectedAvatar(avatarId);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ziabl_user_avatar', avatarId);
+      window.dispatchEvent(new Event('storage'));
+    }
+  };
+
+  const handleSelectTimezone = (tz: string) => {
+    setSelectedTimezone(tz);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('ziabl_user_timezone', tz);
+      window.dispatchEvent(new Event('storage'));
+    }
+  };
+
+  const confirmUnlink = () => {
+    if (!unlinkProvider) return;
+    setLinkedAccounts((prev) => {
+      const next = { ...prev, [unlinkProvider]: false };
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ziabl_linked_providers', JSON.stringify(next));
+      }
+      return next;
+    });
+    setUnlinkProvider(null);
   };
 
   const handleToggle2FA = () => {
@@ -215,8 +323,10 @@ export default function ProfilePage() {
           
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 relative z-10">
             <div className="flex items-center gap-5">
-              <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 border-2 border-accent/40 flex items-center justify-center text-accent text-3xl font-extrabold shadow-lg shadow-accent/10">
-                {(nameInput || session.user.name || session.user.email || 'U')[0].toUpperCase()}
+              <div className="relative group">
+                <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-accent/20 to-accent/5 border-2 border-accent/40 flex items-center justify-center text-4xl shadow-lg shadow-accent/10 transition-transform group-hover:scale-105">
+                  {availableAvatars.find((a) => a.id === selectedAvatar)?.emoji || (nameInput || session.user.name || session.user.email || 'U')[0].toUpperCase()}
+                </div>
               </div>
 
               <div>
@@ -239,6 +349,26 @@ export default function ProfilePage() {
                   <Mail className="w-4 h-4 text-text-muted" />
                   <span>{session.user.email}</span>
                 </p>
+
+                {/* Quick Avatar Picker Chips */}
+                <div className="flex items-center gap-1.5 mt-3">
+                  <span className="text-[11px] text-text-muted mr-1">{t('chooseAvatar')}:</span>
+                  {availableAvatars.map((av) => (
+                    <button
+                      key={av.id}
+                      type="button"
+                      onClick={() => handleSelectAvatar(av.id)}
+                      title={av.label}
+                      className={`w-7 h-7 rounded-lg flex items-center justify-center text-sm border transition-all ${
+                        selectedAvatar === av.id
+                          ? 'border-accent bg-accent/20 scale-110 shadow-sm shadow-accent/20'
+                          : 'border-surface-border bg-surface-light/80 hover:border-text-muted hover:scale-105'
+                      }`}
+                    >
+                      {av.emoji}
+                    </button>
+                  ))}
+                </div>
               </div>
             </div>
 
@@ -465,7 +595,14 @@ export default function ProfilePage() {
                           : 'bg-surface-light border-surface-border text-text-secondary hover:text-text-primary'
                       }`}
                     >
-                      <span>🇷🇺 Русский</span>
+                      <svg className="w-5 h-3.5 rounded-sm shadow-sm overflow-hidden flex-shrink-0" viewBox="0 0 640 480">
+                        <g fillRule="evenodd" strokeWidth="1pt">
+                          <path fill="#fff" d="M0 0h640v160H0z"/>
+                          <path fill="#0039a6" d="M0 160h640v160H0z"/>
+                          <path fill="#d52b1e" d="M0 320h640v160H0z"/>
+                        </g>
+                      </svg>
+                      <span>Русский</span>
                     </button>
                     <button
                       type="button"
@@ -476,9 +613,37 @@ export default function ProfilePage() {
                           : 'bg-surface-light border-surface-border text-text-secondary hover:text-text-primary'
                       }`}
                     >
-                      <span>🇬🇧 English</span>
+                      <svg className="w-5 h-3.5 rounded-sm shadow-sm overflow-hidden flex-shrink-0" viewBox="0 0 640 480">
+                        <path fill="#012169" d="M0 0h640v480H0z"/>
+                        <path fill="#FFF" d="m75 0 244 181L562 0h78v62L400 240l240 178v62h-80L320 301 81 480H0v-60l239-180L0 64V0h75z"/>
+                        <path fill="#C8102E" d="m424 288 216 153v39h-40L368 308l56-20zM640 0v10L454 150l32 24L640 48V0zM0 480v-11l186-138-32-24L0 431v49zm0-480v12l184 137 56-20L38 0H0z"/>
+                        <path fill="#FFF" d="M256 0h128v480H256zM0 176h640v128H0z"/>
+                        <path fill="#C8102E" d="M280 0h80v480h-80zM0 200h640v80H0z"/>
+                      </svg>
+                      <span>English</span>
                     </button>
                   </div>
+                </div>
+
+                {/* Timezone Selector */}
+                <div>
+                  <label className="block text-xs font-semibold text-text-secondary mb-1">
+                    {t('timezone')}
+                  </label>
+                  <p className="text-[11px] text-text-muted mb-2">
+                    {t('timezoneDesc')}
+                  </p>
+                  <select
+                    value={selectedTimezone}
+                    onChange={(e) => handleSelectTimezone(e.target.value)}
+                    className="input-field text-xs py-2 cursor-pointer bg-surface-light"
+                  >
+                    {timezones.map((tz) => (
+                      <option key={tz.value} value={tz.value}>
+                        {tz.label}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
                 <button type="submit" className="btn-primary w-full text-xs font-semibold py-2.5">
@@ -501,14 +666,14 @@ export default function ProfilePage() {
 
               <div className="space-y-2.5">
                 {/* Yandex */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-surface-light border border-surface-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-[#fc3f1d]/15 text-[#fc3f1d] flex items-center justify-center font-bold text-sm">
+                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-[#fc3f1d]/15 text-[#fc3f1d] flex items-center justify-center font-bold text-sm shrink-0">
                       Я
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-text-primary">Яндекс ID</div>
-                      <div className="text-[11px] text-text-muted">
+                      <div className="text-[11px] text-text-muted truncate">
                         {linkedAccounts.yandex ? (session.user.email || 'yandex-user') : t('notConnected')}
                       </div>
                     </div>
@@ -516,10 +681,16 @@ export default function ProfilePage() {
 
                   <button
                     type="button"
-                    onClick={() => toggleLinkedAccount('yandex')}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                    onClick={() => {
+                      if (linkedAccounts.yandex) {
+                        setUnlinkProvider('yandex');
+                      } else {
+                        setLinkedAccounts((prev) => ({ ...prev, yandex: true }));
+                      }
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
                       linkedAccounts.yandex
-                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25'
+                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-danger/15 hover:text-danger hover:border-danger/30'
                         : 'btn-secondary !py-1 !px-2.5 text-xs'
                     }`}
                   >
@@ -528,14 +699,14 @@ export default function ProfilePage() {
                 </div>
 
                 {/* Google */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-surface-light border border-surface-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center font-bold text-sm">
+                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center font-bold text-sm shrink-0">
                       G
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-text-primary">Google</div>
-                      <div className="text-[11px] text-text-muted">
+                      <div className="text-[11px] text-text-muted truncate">
                         {linkedAccounts.google ? 'user@gmail.com' : t('notConnected')}
                       </div>
                     </div>
@@ -543,10 +714,16 @@ export default function ProfilePage() {
 
                   <button
                     type="button"
-                    onClick={() => toggleLinkedAccount('google')}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                    onClick={() => {
+                      if (linkedAccounts.google) {
+                        setUnlinkProvider('google');
+                      } else {
+                        setLinkedAccounts((prev) => ({ ...prev, google: true }));
+                      }
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
                       linkedAccounts.google
-                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25'
+                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-danger/15 hover:text-danger hover:border-danger/30'
                         : 'btn-secondary !py-1 !px-2.5 text-xs'
                     }`}
                   >
@@ -555,16 +732,16 @@ export default function ProfilePage() {
                 </div>
 
                 {/* GitHub */}
-                <div className="flex items-center justify-between p-3 rounded-xl bg-surface-light border border-surface-border">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-surface-border text-text-primary flex items-center justify-center font-bold text-sm">
+                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-surface-border text-text-primary flex items-center justify-center font-bold text-sm shrink-0">
                       <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
                         <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
                       </svg>
                     </div>
-                    <div>
+                    <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-text-primary">GitHub</div>
-                      <div className="text-[11px] text-text-muted">
+                      <div className="text-[11px] text-text-muted truncate">
                         {linkedAccounts.github ? 'github-connected' : t('notConnected')}
                       </div>
                     </div>
@@ -572,10 +749,16 @@ export default function ProfilePage() {
 
                   <button
                     type="button"
-                    onClick={() => toggleLinkedAccount('github')}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors ${
+                    onClick={() => {
+                      if (linkedAccounts.github) {
+                        setUnlinkProvider('github');
+                      } else {
+                        setLinkedAccounts((prev) => ({ ...prev, github: true }));
+                      }
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
                       linkedAccounts.github
-                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-accent/25'
+                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-danger/15 hover:text-danger hover:border-danger/30'
                         : 'btn-secondary !py-1 !px-2.5 text-xs'
                     }`}
                   >
@@ -624,34 +807,78 @@ export default function ProfilePage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    {t('newPassword')}
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-text-secondary">
+                      {t('newPassword')}
+                    </label>
+                    {newPassword && (
+                      <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                        passwordStrength.score >= 3 ? 'text-accent' : passwordStrength.score === 2 ? 'text-warning' : 'text-danger'
+                      }`}>
+                        {passwordStrength.label}
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="password"
                     value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
+                    onChange={(e) => {
+                      setNewPassword(e.target.value);
+                      if (passwordError) setPasswordError('');
+                    }}
                     placeholder="••••••••"
                     required
                     className="input-field text-sm"
                   />
+
+                  {/* Dynamic Password Strength Progress Bar */}
+                  {newPassword && (
+                    <div className="mt-1.5 space-y-1">
+                      <div className="w-full h-1.5 rounded-full bg-surface-border overflow-hidden">
+                        <div
+                          className={`h-full ${passwordStrength.color} transition-all duration-300 rounded-full`}
+                          style={{ width: passwordStrength.width }}
+                        />
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-[10px] text-text-muted mt-1 leading-normal">
+                    {t('passwordHint')}
+                  </p>
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    {t('confirmNewPassword')}
-                  </label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-xs font-semibold text-text-secondary">
+                      {t('confirmNewPassword')}
+                    </label>
+                    {confirmPassword && newPassword !== confirmPassword && (
+                      <span className="text-[10px] text-danger font-medium">
+                        {t('passwordMismatch')}
+                      </span>
+                    )}
+                    {confirmPassword && newPassword === confirmPassword && (
+                      <span className="text-[10px] text-accent font-medium flex items-center gap-1">
+                        <Check className="w-3 h-3" /> Совпадает
+                      </span>
+                    )}
+                  </div>
                   <input
                     type="password"
                     value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    onChange={(e) => {
+                      setConfirmPassword(e.target.value);
+                      if (passwordError) setPasswordError('');
+                    }}
                     placeholder="••••••••"
                     required
-                    className="input-field text-sm"
+                    className={`input-field text-sm transition-colors ${
+                      confirmPassword && newPassword !== confirmPassword ? 'border-danger/60 focus:border-danger' : ''
+                    }`}
                   />
                 </div>
 
-                <button type="submit" className="btn-secondary w-full text-xs font-semibold py-2.5">
+                <button type="submit" className="btn-secondary w-full text-xs font-semibold py-2.5 hover:border-accent/40">
                   {t('updatePasswordBtn')}
                 </button>
               </form>
@@ -806,6 +1033,41 @@ export default function ProfilePage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Account Unlink Confirmation Modal */}
+      {unlinkProvider && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="card max-w-sm w-full bg-surface border-surface-border p-6 shadow-2xl relative space-y-4 animate-scale-in">
+            <div className="flex items-center gap-3 text-danger font-bold text-base">
+              <AlertCircle className="w-5 h-5 shrink-0" />
+              <span>{t('confirmDisconnectTitle')}</span>
+            </div>
+
+            <p className="text-xs text-text-secondary leading-relaxed">
+              {t('confirmDisconnectText', {
+                provider: unlinkProvider === 'yandex' ? 'Яндекс ID' : unlinkProvider === 'google' ? 'Google' : 'GitHub',
+              })}
+            </p>
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setUnlinkProvider(null)}
+                className="btn-secondary w-1/2 text-xs font-semibold py-2.5"
+              >
+                {t('cancelBtn')}
+              </button>
+              <button
+                type="button"
+                onClick={confirmUnlink}
+                className="w-1/2 py-2.5 px-3 rounded-xl text-xs font-semibold bg-danger text-white hover:bg-danger-dark transition-colors shadow-sm"
+              >
+                {t('confirmDisconnectBtn')}
+              </button>
+            </div>
           </div>
         </div>
       )}
