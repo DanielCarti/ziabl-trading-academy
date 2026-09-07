@@ -18,7 +18,7 @@ export default function Header() {
   const locale = useLocale();
   const pathname = usePathname();
   const router = useRouter();
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [profileDropdown, setProfileDropdown] = useState(false);
   const [displayName, setDisplayName] = useState<string | null>(null);
@@ -128,9 +128,13 @@ export default function Header() {
             </button>
 
             {/* Auth */}
-            {session?.user ? (
+            {status === 'loading' ? (
+              <div className="flex items-center gap-2">
+                <div className="w-28 h-9 rounded-xl bg-surface-light/60 animate-pulse border border-surface-border/50" />
+              </div>
+            ) : session?.user ? (
               <div
-                className="relative group"
+                className="relative"
                 onMouseEnter={() => setProfileDropdown(true)}
                 onMouseLeave={() => setProfileDropdown(false)}
               >
@@ -147,46 +151,48 @@ export default function Header() {
                   <ChevronDown className={`w-3.5 h-3.5 text-text-muted transition-transform duration-200 ${profileDropdown ? 'rotate-180' : ''}`} />
                 </button>
 
-                {/* Dropdown Menu on Hover / Click */}
+                {/* Dropdown Menu on Hover / Click with invisible bridge to prevent mouse leave */}
                 {profileDropdown && (
-                  <div className="absolute right-0 top-full mt-2 w-56 bg-surface border border-surface-border rounded-xl shadow-2xl p-2 z-50 animate-fade-in space-y-1">
-                    <div className="px-3 py-2 border-b border-surface-border/60 mb-1">
-                      <div className="text-xs font-semibold text-text-primary truncate">{displayName || session.user.name || 'Пользователь'}</div>
-                      <div className="text-[11px] text-text-muted truncate">{session.user.email}</div>
-                    </div>
+                  <div className="absolute right-0 top-full pt-1.5 w-56 z-50">
+                    <div className="bg-surface border border-surface-border rounded-xl shadow-2xl p-2 animate-fade-in space-y-1">
+                      <div className="px-3 py-2 border-b border-surface-border/60 mb-1">
+                        <div className="text-xs font-semibold text-text-primary truncate">{displayName || session.user.name || 'Пользователь'}</div>
+                        <div className="text-[11px] text-text-muted truncate">{session.user.email}</div>
+                      </div>
 
-                    <Link
-                      href={`/${locale}/profile`}
-                      onClick={() => setProfileDropdown(false)}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
-                    >
-                      <User className="w-4 h-4 text-accent" />
-                      <span>Мой профиль</span>
-                    </Link>
-
-                    {(session.user as any).role === 'ADMIN' && (
                       <Link
-                        href="/admin"
+                        href={`/${locale}/profile`}
                         onClick={() => setProfileDropdown(false)}
-                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-chart-blue hover:bg-chart-blue/10 transition-colors"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-accent hover:bg-accent/10 transition-colors"
                       >
-                        <LayoutDashboard className="w-4 h-4 text-chart-blue" />
-                        <span>Панель управления</span>
+                        <User className="w-4 h-4 text-accent" />
+                        <span>Мой профиль</span>
                       </Link>
-                    )}
 
-                    <hr className="border-surface-border/60 my-1" />
+                      {(session.user as any).role === 'ADMIN' && (
+                        <Link
+                          href="/admin"
+                          onClick={() => setProfileDropdown(false)}
+                          className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-text-secondary hover:text-chart-blue hover:bg-chart-blue/10 transition-colors"
+                        >
+                          <LayoutDashboard className="w-4 h-4 text-chart-blue" />
+                          <span>Панель управления</span>
+                        </Link>
+                      )}
 
-                    <button
-                      onClick={() => {
-                        setProfileDropdown(false);
-                        signOut({ callbackUrl: `/${locale}` });
-                      }}
-                      className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-danger hover:bg-danger/10 transition-colors w-full text-left"
-                    >
-                      <LogOut className="w-4 h-4" />
-                      <span>{t('signout')}</span>
-                    </button>
+                      <hr className="border-surface-border/60 my-1" />
+
+                      <button
+                        onClick={() => {
+                          setProfileDropdown(false);
+                          signOut({ callbackUrl: `/${locale}` });
+                        }}
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-danger hover:bg-danger/10 transition-colors w-full text-left"
+                      >
+                        <LogOut className="w-4 h-4" />
+                        <span>{t('signout')}</span>
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
