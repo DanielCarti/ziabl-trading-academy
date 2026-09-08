@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma';
 import { getTranslations } from 'next-intl/server';
 import { getLocalizedField } from '@/lib/utils';
 import Link from 'next/link';
-import { BookOpen, CheckCircle2, ChevronRight } from 'lucide-react';
+import CoursesListClient from '@/components/courses/CoursesListClient';
 
 export default async function CoursesPage({ params: { locale } }: { params: { locale: string } }) {
   const t = await getTranslations('courses');
@@ -41,53 +41,14 @@ export default async function CoursesPage({ params: { locale } }: { params: { lo
           <p className="text-lg text-text-secondary">{t('subtitle')}</p>
         </div>
 
-        {/* Modules */}
-        <div className="space-y-6">
-          {modules.map((mod, i) => (
-            <div key={mod.id} className="card-hover">
-              {/* Module Header */}
-              <div className="flex items-start gap-4 mb-4">
-                <div className="text-3xl">{mod.icon || defaultModuleIcons[i] || '📘'}</div>
-                <div className="flex-1">
-                  <div className="text-xs text-accent font-semibold uppercase tracking-wider mb-1">
-                    {t('module')} {i + 1}
-                  </div>
-                  <h2 className="text-xl font-bold text-text-primary">
-                    {getLocalizedField(mod, 'title', locale)}
-                  </h2>
-                  <p className="text-sm text-text-secondary mt-1">
-                    {getLocalizedField(mod, 'desc', locale)}
-                  </p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <BookOpen className="w-4 h-4 text-text-muted" />
-                    <span className="text-xs text-text-muted">
-                      {mod._count.lessons} {t('lessons')}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Lessons List */}
-              <div className="ml-12 space-y-1">
-                {mod.lessons.map((lesson: any) => (
-                  <Link
-                    key={lesson.id}
-                    href={`/${locale}/lesson/${lesson.slug}`}
-                    className="flex items-center gap-3 px-4 py-3 rounded-lg hover:bg-surface-light transition-all group"
-                  >
-                    <div className="w-6 h-6 rounded-full bg-surface-light border border-surface-border flex items-center justify-center text-xs text-text-muted group-hover:border-accent group-hover:text-accent transition-colors">
-                      {lesson.order}
-                    </div>
-                    <span className="flex-1 text-sm text-text-secondary group-hover:text-text-primary transition-colors">
-                      {getLocalizedField(lesson, 'title', locale)}
-                    </span>
-                    <ChevronRight className="w-4 h-4 text-text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
+        {/* Modules List with Completion Tracking */}
+        <CoursesListClient
+          modules={modules}
+          locale={locale}
+          moduleLabel={t('module')}
+          lessonsLabel={t('lessons')}
+          completedBadgeLabel={locale === 'ru' ? 'Пройден' : 'Completed'}
+        />
       </div>
     </div>
   );

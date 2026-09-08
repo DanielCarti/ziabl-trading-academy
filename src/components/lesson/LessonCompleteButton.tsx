@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { useTranslations } from 'next-intl';
 import { CheckCircle2, Circle } from 'lucide-react';
@@ -15,33 +15,82 @@ export default function LessonCompleteButton({ lessonId }: CompleteButtonProps) 
   const [completed, setCompleted] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const handleToggle = async () => {
-    if (!session || completed || loading) return;
+  // Initialize and listen for completion from localStorage and custom events
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
 
-    setLoading(true);
+    // Check localStorage
     try {
-      const res = await fetch('/api/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lessonId }),
-      });
-      if (res.ok) {
+      const stored = localStorage.getItem('ziabl_completed_lessons');
+      if (stored) {
+        const list: string[] = JSON.parse(stored);
+        if (list.includes(lessonId)) {
+          setCompleted(true);
+        }
+      }
+    } catch (e) {}
+
+    // Check server if logged in
+    if (session?.user) {
+      fetch('/api/progress')
+        .then((r) => r.json())
+        .then((data) => {
+          if (data && data.progress && Array.isArray(data.progress)) {
+            const found = data.progress.find((p: any) => p.lessonId === lessonId && p.completed);
+            if (found) setCompleted(true);
+          }
+        })
+        .catch(() => {});
+    }
+
+    // Event listener for automatic quiz completion
+    const onLessonCompleted = (e: Event) => {
+      const custom = e as CustomEvent;
+      if (custom.detail && (custom.detail.lessonId === lessonId || custom.detail.lessonSlug === lessonId)) {
         setCompleted(true);
       }
-    } catch (err) {
-      console.error('Failed to mark lesson complete', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
 
-  if (!session) {
-    return (
-      <div className="p-3 bg-surface-light rounded-lg border border-surface-border text-xs text-text-muted text-center">
-        {t('loginToTrack')}
-      </div>
-    );
-  }
+    window.addEventListener('lesson-completed', onLessonCompleted);
+    return () => window.removeEventListener('lesson-completed', onLessonCompleted);
+  }, [lessonId, session]);
+
+  const handleToggle = async () => {
+    if (completed || loading) return;
+
+    setLoading(true);
+
+    // Save to localStorage immediately
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem('ziabl_completed_lessons');
+        const list: string[] = stored ? JSON.parse(stored) : [];
+        if (!list.includes(lessonId)) {
+          list.push(lessonId);
+          localStorage.setItem('ziabl_completed_lessons', JSON.stringify(list));
+        }
+        window.dispatchEvent(
+          new CustomEvent('lesson-completed', { detail: { lessonId } })
+        );
+      } catch (e) {}
+    }
+
+    setCompleted(true);
+
+    // If signed in, sync with server
+    if (session) {
+      try {
+        await fetch('/api/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lessonId }),
+        });
+      } catch (err) {
+        console.error('Failed to mark lesson complete', err);
+      }
+    }
+    setLoading(false);
+  };
 
   return (
     <button
@@ -49,19 +98,19 @@ export default function LessonCompleteButton({ lessonId }: CompleteButtonProps) 
       disabled={completed || loading}
       className={`inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
         completed
-          ? 'bg-accent/10 border border-accent/30 text-accent cursor-default'
+          ? 'bg-accent/10 border border-accent/30 text-accent cursor-default shadow-sm'
           : 'bg-surface-light hover:bg-surface border border-surface-border text-text-primary active:scale-[0.98]'
       }`}
     >
       {completed ? (
         <>
-          <CheckCircle2 className="w-4 h-4 text-accent" />
-          {t('completed')}
+          <CheckCircle2 className="w-4 h-4 text-accent animate-scale-in" />
+          <span>{t('completed')}</span>
         </>
       ) : (
         <>
           <Circle className="w-4 h-4 text-text-muted" />
-          {loading ? '...' : t('markComplete')}
+          <span>{loading ? '...' : t('markComplete')}</span>
         </>
       )}
     </button>

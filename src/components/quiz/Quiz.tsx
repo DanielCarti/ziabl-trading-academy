@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
 import { getLocalizedField } from '@/lib/utils';
 import { cn } from '@/lib/utils';
@@ -23,9 +23,18 @@ interface QuizProps {
   questions: QuizQuestion[];
   locale: string;
   passingScore: number;
+  lessonId?: string;
+  lessonSlug?: string;
 }
 
-export default function Quiz({ quizId, questions, locale, passingScore }: QuizProps) {
+export default function Quiz({
+  quizId,
+  questions,
+  locale,
+  passingScore,
+  lessonId,
+  lessonSlug,
+}: QuizProps) {
   const t = useTranslations('quiz');
   const [answers, setAnswers] = useState<Record<string, number[]>>({});
   const [submitted, setSubmitted] = useState(false);
@@ -35,6 +44,25 @@ export default function Quiz({ quizId, questions, locale, passingScore }: QuizPr
     passed: boolean;
     details: Record<string, boolean>;
   } | null>(null);
+
+  // Storage key for caching quiz state
+  const storageKey = `ziabl_quiz_${quizId}`;
+
+  // Restore saved quiz attempt from localStorage on mount
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const cached = localStorage.getItem(storageKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed && parsed.answers && parsed.results) {
+          setAnswers(parsed.answers);
+          setResults(parsed.results);
+          setSubmitted(true);
+        }
+      }
+    } catch (e) {}
+  }, [storageKey]);
 
   const handleSelect = (questionId: string, optionIndex: number, isMulti: boolean) => {
     if (submitted) return;
@@ -66,9 +94,55 @@ export default function Quiz({ quizId, questions, locale, passingScore }: QuizPr
     });
 
     const score = Math.round((correct / questions.length) * 100);
-    setResults({ score, total: questions.length, passed: score >= passingScore, details });
+    const passed = score >= passingScore;
+    const computedResults = { score, total: questions.length, passed, details };
+
+    setResults(computedResults);
     setSubmitted(true);
 
+    // 1. Cache in localStorage so answers & score stay preserved
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.setItem(
+          storageKey,
+          JSON.stringify({ answers, results: computedResults, timestamp: Date.now() })
+        );
+      } catch (e) {}
+    }
+
+    // 2. If quiz is passed, automatically mark the lesson as completed!
+    if (passed && typeof window !== 'undefined') {
+      try {
+        // Save to ziabl_completed_lessons array in localStorage
+        const storedLessons = localStorage.getItem('ziabl_completed_lessons');
+        let completedList: string[] = storedLessons ? JSON.parse(storedLessons) : [];
+        if (lessonId && !completedList.includes(lessonId)) {
+          completedList.push(lessonId);
+        }
+        if (lessonSlug && !completedList.includes(lessonSlug)) {
+          completedList.push(lessonSlug);
+        }
+        localStorage.setItem('ziabl_completed_lessons', JSON.stringify(completedList));
+
+        // Dispatch window event so complete buttons, sidebars and headers update immediately
+        window.dispatchEvent(
+          new CustomEvent('lesson-completed', {
+            detail: { lessonId, lessonSlug, score },
+          })
+        );
+      } catch (e) {}
+
+      // Call server /api/progress in the background
+      if (lessonId) {
+        fetch('/api/progress', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lessonId }),
+        }).catch(() => {});
+      }
+    }
+
+    // 3. Submit quiz attempt to backend
     try {
       await fetch('/api/quiz/submit', {
         method: 'POST',
@@ -84,11 +158,16 @@ export default function Quiz({ quizId, questions, locale, passingScore }: QuizPr
     setAnswers({});
     setSubmitted(false);
     setResults(null);
+    if (typeof window !== 'undefined') {
+      try {
+        localStorage.removeItem(storageKey);
+      } catch (e) {}
+    }
   };
 
-  const getOptions = (q: QuizQuestion) => locale === 'ru' ? q.optionsRu : q.optionsEn;
-  const getQuestion = (q: QuizQuestion) => locale === 'ru' ? q.questionRu : q.questionEn;
-  const getExplanation = (q: QuizQuestion) => locale === 'ru' ? q.explanationRu : q.explanationEn;
+  const getOptions = (q: QuizQuestion) => (locale === 'ru' ? q.optionsRu : q.optionsEn);
+  const getQuestion = (q: QuizQuestion) => (locale === 'ru' ? q.questionRu : q.questionEn);
+  const getExplanation = (q: QuizQuestion) => (locale === 'ru' ? q.explanationRu : q.explanationEn);
 
   return (
     <div>
@@ -99,12 +178,12 @@ export default function Quiz({ quizId, questions, locale, passingScore }: QuizPr
 
       {/* Results Banner */}
       {results && (
-        <div className={cn(
-          'mb-6 p-6 rounded-xl border text-center',
-          results.passed
-            ? 'bg-accent/5 border-accent/30'
-            : 'bg-danger/5 border-danger/30'
-        )}>
+        <div
+          className={cn(
+            'mb-6 p-6 rounded-xl border text-center animate-fade-in',
+            results.passed ? 'bg-accent/5 border-accent/30' : 'bg-danger/5 border-danger/30'
+          )}
+        >
           {results.passed && <PartyPopper className="w-10 h-10 text-accent mx-auto mb-3" />}
           <div className="text-3xl font-bold mb-2">
             <span className={results.passed ? 'text-accent' : 'text-danger'}>{results.score}%</span>
@@ -113,8 +192,15 @@ export default function Quiz({ quizId, questions, locale, passingScore }: QuizPr
             {results.passed ? t('passed') : t('failed')}
           </p>
           <p className="text-sm text-text-muted mt-1">
-            {Object.values(results.details).filter(Boolean).length} / {results.total} {t('correct').toLowerCase()}
+            {Object.values(results.details).filter(Boolean).length} / {results.total}{' '}
+            {t('correct').toLowerCase()}
           </p>
+          {results.passed && (
+            <div className="mt-3 inline-flex items-center gap-2 px-3 py-1 rounded-full bg-accent/10 border border-accent/20 text-accent text-xs font-semibold">
+              <CheckCircle2 className="w-4 h-4" />
+              <span>{locale === 'ru' ? 'Урок автоматически отмечен пройденным!' : 'Lesson marked complete!'}</span>
+            </div>
+          )}
         </div>
       )}
 
@@ -131,7 +217,9 @@ export default function Quiz({ quizId, questions, locale, passingScore }: QuizPr
               className={cn(
                 'p-5 rounded-xl border transition-all',
                 submitted && isCorrect !== undefined
-                  ? isCorrect ? 'border-accent/30 bg-accent/5' : 'border-danger/30 bg-danger/5'
+                  ? isCorrect
+                    ? 'border-accent/30 bg-accent/5'
+                    : 'border-danger/30 bg-danger/5'
                   : 'border-surface-border bg-surface-light'
               )}
             >
@@ -158,22 +246,28 @@ export default function Quiz({ quizId, questions, locale, passingScore }: QuizPr
                           ? isCorrectOption
                             ? 'border-accent/50 bg-accent/10 text-accent'
                             : isSelected
-                              ? 'border-danger/50 bg-danger/10 text-danger'
-                              : 'border-surface-border text-text-muted'
+                            ? 'border-danger/50 bg-danger/10 text-danger'
+                            : 'border-surface-border text-text-muted'
                           : isSelected
-                            ? 'border-accent bg-accent/10 text-text-primary'
-                            : 'border-surface-border hover:border-accent/30 text-text-secondary hover:text-text-primary'
+                          ? 'border-accent bg-accent/10 text-text-primary'
+                          : 'border-surface-border hover:border-accent/30 text-text-secondary hover:text-text-primary'
                       )}
                     >
-                      <div className={cn(
-                        'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0',
-                        isSelected ? 'border-accent' : 'border-surface-border'
-                      )}>
+                      <div
+                        className={cn(
+                          'w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0',
+                          isSelected ? 'border-accent' : 'border-surface-border'
+                        )}
+                      >
                         {isSelected && <div className="w-2.5 h-2.5 rounded-full bg-accent" />}
                       </div>
                       <span className="flex-1">{opt}</span>
-                      {submitted && isCorrectOption && <CheckCircle2 className="w-4 h-4 text-accent shrink-0" />}
-                      {submitted && isSelected && !isCorrectOption && <XCircle className="w-4 h-4 text-danger shrink-0" />}
+                      {submitted && isCorrectOption && (
+                        <CheckCircle2 className="w-4 h-4 text-accent shrink-0" />
+                      )}
+                      {submitted && isSelected && !isCorrectOption && (
+                        <XCircle className="w-4 h-4 text-danger shrink-0" />
+                      )}
                     </button>
                   );
                 })}
@@ -182,7 +276,8 @@ export default function Quiz({ quizId, questions, locale, passingScore }: QuizPr
               {/* Explanation */}
               {submitted && getExplanation(q) && (
                 <div className="mt-3 ml-10 p-3 rounded-lg bg-surface text-sm text-text-secondary border border-surface-border">
-                  <span className="font-medium text-accent">{t('explanation')}:</span> {getExplanation(q)}
+                  <span className="font-medium text-accent">{t('explanation')}:</span>{' '}
+                  {getExplanation(q)}
                 </div>
               )}
             </div>

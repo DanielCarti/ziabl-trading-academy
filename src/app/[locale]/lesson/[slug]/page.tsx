@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { ArrowLeft, ArrowRight, BookOpen } from 'lucide-react';
 import LessonContent from '@/components/lesson/LessonContent';
 import LessonCompleteButton from '@/components/lesson/LessonCompleteButton';
+import LessonSidebar from '@/components/lesson/LessonSidebar';
 import Quiz from '@/components/quiz/Quiz';
 
 export default async function LessonPage({
@@ -74,39 +75,14 @@ export default async function LessonPage({
         <div className="flex flex-col lg:flex-row gap-8">
           {/* Sidebar - Module Lessons */}
           <aside className="lg:w-72 shrink-0">
-            <div className="lg:sticky lg:top-24">
-              <div className="card">
-                <h3 className="text-sm font-semibold text-accent uppercase tracking-wider mb-4">
-                  {t('contents')}
-                </h3>
-                <p className="text-sm text-text-primary font-medium mb-4">{moduleTitle}</p>
-                <div className="space-y-1">
-                  {moduleLessons.map((l: any) => (
-                    <Link
-                      key={l.id}
-                      href={`/${locale}/lesson/${l.slug}`}
-                      className={`flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all ${
-                        l.slug === slug
-                          ? 'bg-accent/10 text-accent font-medium'
-                          : 'text-text-secondary hover:text-text-primary hover:bg-surface-light'
-                      }`}
-                    >
-                      <span className={`w-5 h-5 rounded-full border flex items-center justify-center text-xs ${
-                        l.slug === slug ? 'border-accent text-accent' : 'border-surface-border text-text-muted'
-                      }`}>
-                        {l.order}
-                      </span>
-                      <span className="line-clamp-1">{getLocalizedField(l, 'title', locale)}</span>
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              <Link href={`/${locale}/courses`} className="btn-ghost w-full mt-4 text-sm">
-                <ArrowLeft className="w-4 h-4" />
-                {t('backToCourses')}
-              </Link>
-            </div>
+            <LessonSidebar
+              moduleTitle={moduleTitle}
+              moduleLessons={moduleLessons}
+              currentSlug={slug}
+              locale={locale}
+              contentsLabel={t('contents')}
+              backToCoursesLabel={t('backToCourses')}
+            />
           </aside>
 
           {/* Main Content */}
@@ -149,6 +125,8 @@ export default async function LessonPage({
                   questions={lesson.quiz.questions}
                   locale={locale}
                   passingScore={lesson.quiz.passingScore}
+                  lessonId={lesson.id}
+                  lessonSlug={lesson.slug}
                 />
               </div>
             )}
