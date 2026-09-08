@@ -130,12 +130,12 @@ jobs:
         working-directory: ./android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon
+          ./gradlew assembleDebug --no-daemon --stacktrace
 
       - name: Locate & Copy APK
         run: |
           mkdir -p dist-android
-          cp android/app/build/outputs/apk/debug/*.apk dist-android/ZIABL-Trade-Academy.apk
+          find android/app/build/outputs/apk -name "*.apk" -exec cp {} dist-android/ZIABL-Trade-Academy.apk \;
 
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
@@ -152,19 +152,11 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Download Windows Artifact
-        continue-on-error: true
+      - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          name: windows-portable
           path: release-assets
-
-      - name: Download Android Artifact
-        continue-on-error: true
-        uses: actions/download-artifact@v4
-        with:
-          name: android-apk
-          path: release-assets
+          merge-multiple: true
 
       - name: Create or Update GitHub Release
         uses: softprops/action-gh-release@v2
