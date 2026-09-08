@@ -146,7 +146,7 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: [build-windows-exe, build-android-apk]
-    if: always() && (needs.build-windows-exe.result == "success" || needs.build-android-apk.result == "success")
+    if: always() && (needs.build-windows-exe.result == 'success' || needs.build-android-apk.result == 'success')
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
