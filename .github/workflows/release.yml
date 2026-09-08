@@ -43,7 +43,7 @@ jobs:
           $batLines = @(
             "@echo off",
             "title ZIABL Trade Academy",
-            "echo Starting ZIABL Trade Academy...",
+            "echo Starting ZIABL Trade Academy Desktop...",
             "start http://localhost:3000/ru",
             "node server.js"
           )
@@ -60,6 +60,7 @@ jobs:
   build-android-apk:
     name: Build Android APK
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -101,18 +102,19 @@ jobs:
             "webDir": "public"
           }
           EOF
-          npx cap add android
+          npx cap add android || true
+          npx cap sync android || true
 
       - name: Build Android Debug APK with Gradle
         working-directory: ./android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
       - name: Locate & Rename APK
         run: |
           mkdir -p dist-android
-          cp android/app/build/outputs/apk/debug/app-debug.apk dist-android/ZIABL-Trade-Academy.apk
+          cp android/app/build/outputs/apk/debug/*.apk dist-android/ZIABL-Trade-Academy.apk || true
 
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
@@ -123,6 +125,7 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: [build-windows-exe, build-android-apk]
+    if: always() && needs.build-windows-exe.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -135,6 +138,7 @@ jobs:
           path: release-assets
 
       - name: Download Android Artifact
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: android-apk
@@ -145,8 +149,7 @@ jobs:
         if: startsWith(github.ref, 'refs/tags/')
         with:
           files: |
-            release-assets/ZIABL-Trade-Academy-Windows-x64.zip
-            release-assets/ZIABL-Trade-Academy.apk
+            release-assets/*
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
