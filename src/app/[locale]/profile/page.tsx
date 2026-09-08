@@ -25,12 +25,13 @@ export default function ProfilePage() {
 
   const [nameInput, setNameInput] = useState('');
   const [savedSuccess, setSavedSuccess] = useState(false);
+  const [completedLessonSlugs, setCompletedLessonSlugs] = useState<string[]>([]);
   const [progressData, setProgressData] = useState({
-    totalLessons: 13,
-    completedCount: 3,
-    percentage: 23,
-    quizzesPassed: 3,
-    averageScore: 92,
+    totalLessons: mockModules.reduce((acc, m) => acc + m.lessons.length, 0),
+    completedCount: 0,
+    percentage: 0,
+    quizzesPassed: 0,
+    averageScore: 0,
   });
 
   // Avatars list
@@ -285,19 +286,78 @@ export default function ProfilePage() {
   }, [session]);
 
   useEffect(() => {
-    fetch('/api/progress')
-      .then((res) => res.json())
-      .then((data) => {
-        if (data && typeof data.totalLessons === 'number') {
-          setProgressData((prev) => ({
-            ...prev,
-            totalLessons: data.totalLessons,
-            completedCount: data.completedCount || 3,
-            percentage: data.percentage || 23,
-          }));
+    const syncProgress = () => {
+      if (typeof window === 'undefined') return;
+      
+      let localCompleted: string[] = [];
+      try {
+        const stored = localStorage.getItem('ziabl_completed_lessons');
+        if (stored) {
+          const parsed = JSON.parse(stored);
+          if (Array.isArray(parsed)) localCompleted = parsed;
         }
-      })
-      .catch(() => {});
+      } catch (e) {}
+
+      // Calculate quiz stats from localStorage
+      let quizCount = 0;
+      let totalScore = 0;
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('ziabl_quiz_')) {
+          try {
+            const data = JSON.parse(localStorage.getItem(key) || '{}');
+            if (data && typeof data.score === 'number') {
+              quizCount++;
+              totalScore += data.score;
+            }
+          } catch (e) {}
+        }
+      }
+
+      const total = mockModules.reduce((acc, m) => acc + m.lessons.length, 0);
+      const completedSet = new Set(localCompleted);
+      const completedCount = completedSet.size;
+      const percentage = total > 0 ? Math.round((completedCount / total) * 100) : 0;
+      const averageScore = quizCount > 0 ? Math.round(totalScore / quizCount) : (completedCount > 0 ? 100 : 0);
+
+      setCompletedLessonSlugs(Array.from(completedSet));
+      setProgressData({
+        totalLessons: total,
+        completedCount,
+        percentage,
+        quizzesPassed: quizCount || completedCount,
+        averageScore: averageScore || (completedCount > 0 ? 100 : 0),
+      });
+
+      fetch('/api/progress')
+        .then((res) => res.json())
+        .then((data) => {
+          if (data && Array.isArray(data.progress)) {
+            const serverCompleted = data.progress
+              .filter((p: any) => p.completed && p.lesson?.slug)
+              .map((p: any) => p.lesson.slug);
+            const merged = Array.from(new Set([...localCompleted, ...serverCompleted]));
+            localStorage.setItem('ziabl_completed_lessons', JSON.stringify(merged));
+            setCompletedLessonSlugs(merged);
+            const finalCompletedCount = merged.length;
+            const finalPct = total > 0 ? Math.round((finalCompletedCount / total) * 100) : 0;
+            setProgressData((prev) => ({
+              ...prev,
+              completedCount: finalCompletedCount,
+              percentage: finalPct,
+            }));
+          }
+        })
+        .catch(() => {});
+    };
+
+    syncProgress();
+    window.addEventListener('storage', syncProgress);
+    window.addEventListener('lesson-completed', syncProgress);
+    return () => {
+      window.removeEventListener('storage', syncProgress);
+      window.removeEventListener('lesson-completed', syncProgress);
+    };
   }, []);
 
   const handleSaveSettings = async (e: React.FormEvent) => {
@@ -342,8 +402,14 @@ export default function ProfilePage() {
   const role = (session.user as any).role || 'USER';
   const isAdmin = role === 'ADMIN';
 
-  // Find some recommended/recent lessons from mock data
-  const sampleLessons = mockModules.flatMap((m) => m.lessons).slice(0, 3);
+  // Find recommended / next lessons
+  const allLessons = mockModules.flatMap((m) => m.lessons);
+  // Find first lesson that is not completed yet
+  const nextLessonIndex = allLessons.findIndex((l) => !completedLessonSlugs.includes(l.slug) && !completedLessonSlugs.includes(l.id));
+  const activeIndex = nextLessonIndex === -1 ? allLessons.length - 1 : nextLessonIndex;
+  // Display up to 3 relevant lessons starting near the active one
+  const startIndex = Math.max(0, Math.min(activeIndex, allLessons.length - 3));
+  const sampleLessons = allLessons.slice(startIndex, startIndex + 3);
 
   return (
     <div className="min-h-screen py-10 bg-background">
@@ -510,32 +576,53 @@ export default function ProfilePage() {
             </h2>
 
             <div className="space-y-3">
-              {sampleLessons.map((lesson, idx) => (
-                <div
-                  key={lesson.id}
-                  className="card flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:border-accent/40 transition-all group"
-                >
-                  <div className="space-y-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-mono text-accent">Урок {idx + 1}</span>
-                      {idx === 0 && (
-                        <span className="badge bg-accent/10 text-accent text-[10px]">В процессе</span>
-                      )}
-                    </div>
-                    <h3 className="font-bold text-text-primary group-hover:text-accent transition-colors">
-                      {locale === 'ru' ? lesson.titleRu : lesson.titleEn}
-                    </h3>
-                  </div>
+              {sampleLessons.map((lesson) => {
+                const globalIndex = allLessons.findIndex((l) => l.id === lesson.id);
+                const isCompleted = completedLessonSlugs.includes(lesson.slug) || completedLessonSlugs.includes(lesson.id);
+                const isCurrent = !isCompleted && globalIndex === activeIndex;
 
-                  <Link
-                    href={`/${locale}/lesson/${lesson.slug}`}
-                    className="btn-primary !py-2 !px-4 text-xs gap-1.5 shrink-0 self-start sm:self-center"
+                return (
+                  <div
+                    key={lesson.id}
+                    className={`card flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all group ${
+                      isCompleted
+                        ? 'border-emerald-500/30 bg-emerald-500/5 hover:border-emerald-500/50'
+                        : isCurrent
+                        ? 'border-accent/50 bg-accent/5 hover:border-accent'
+                        : 'hover:border-surface-border'
+                    }`}
                   >
-                    <span>Открыть</span>
-                    <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              ))}
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-mono text-accent">Урок {globalIndex + 1}</span>
+                        {isCompleted ? (
+                          <span className="badge bg-emerald-500/20 text-emerald-400 text-[10px] flex items-center gap-1">
+                            <CheckCircle2 className="w-3 h-3" />
+                            Пройден
+                          </span>
+                        ) : isCurrent ? (
+                          <span className="badge bg-accent/15 text-accent text-[10px]">В процессе</span>
+                        ) : (
+                          <span className="badge bg-surface-light text-text-muted text-[10px]">Не начат</span>
+                        )}
+                      </div>
+                      <h3 className="font-bold text-text-primary group-hover:text-accent transition-colors">
+                        {locale === 'ru' ? lesson.titleRu : lesson.titleEn}
+                      </h3>
+                    </div>
+
+                    <Link
+                      href={`/${locale}/lesson/${lesson.slug}`}
+                      className={`btn-primary !py-2 !px-4 text-xs gap-1.5 shrink-0 self-start sm:self-center ${
+                        isCompleted ? '!bg-emerald-600 hover:!bg-emerald-500' : ''
+                      }`}
+                    >
+                      <span>{isCompleted ? 'Повторить' : 'Открыть'}</span>
+                      <ArrowRight className="w-3.5 h-3.5" />
+                    </Link>
+                  </div>
+                );
+              })}
             </div>
           </div>
 
