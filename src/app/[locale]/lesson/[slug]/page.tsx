@@ -45,6 +45,18 @@ export default async function LessonPage({
     lesson = mockLessonsBySlug[slug] || null;
   }
 
+  let terms: any[] = [];
+  try {
+    terms = await prisma.glossaryTerm.findMany();
+  } catch (err) {
+    const { mockGlossaryTerms } = await import('@/lib/mockData');
+    terms = mockGlossaryTerms as any;
+  }
+  if (!terms || terms.length === 0) {
+    const { mockGlossaryTerms } = await import('@/lib/mockData');
+    terms = mockGlossaryTerms as any;
+  }
+
   if (!lesson) notFound();
 
   const moduleLessons = lesson.module.lessons;
@@ -120,7 +132,13 @@ export default async function LessonPage({
 
             {/* Markdown Content */}
             <div className="card mb-8">
-              <LessonContent content={content} hasChart={lesson.hasChart} chartType={lesson.chartType} />
+              <LessonContent
+                content={content}
+                hasChart={lesson.hasChart}
+                chartType={lesson.chartType}
+                locale={locale}
+                glossaryTerms={terms}
+              />
             </div>
 
             {/* Quiz */}
