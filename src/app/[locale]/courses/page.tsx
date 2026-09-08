@@ -30,7 +30,7 @@ export default async function CoursesPage({ params: { locale } }: { params: { lo
     modules = mockModules as any;
   }
 
-  const moduleIcons = ['📊', '📈', '🏦', '⚡', '🔍', '📉'];
+  const defaultModuleIcons = ['💡', '📊', '🏛️', '📈', '💎', '🌪️', '🏦', '📉', '⚡', '🔍'];
 
   return (
     <div className="min-h-screen py-12">
@@ -47,7 +47,7 @@ export default async function CoursesPage({ params: { locale } }: { params: { lo
             <div key={mod.id} className="card-hover">
               {/* Module Header */}
               <div className="flex items-start gap-4 mb-4">
-                <div className="text-3xl">{moduleIcons[i] || '📘'}</div>
+                <div className="text-3xl">{mod.icon || defaultModuleIcons[i] || '📘'}</div>
                 <div className="flex-1">
                   <div className="text-xs text-accent font-semibold uppercase tracking-wider mb-1">
                     {t('module')} {i + 1}
