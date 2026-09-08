@@ -76,15 +76,8 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies & Capacitor
+      - name: Prepare Android Web Wrapper
         run: |
-          npm install --legacy-peer-deps
-          npm install --save-dev @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest --legacy-peer-deps
-
-      - name: Prepare Web Assets
-        run: |
-          npx prisma generate
-          npm run build
           mkdir -p out_web
           cp -r public/* out_web/ || true
           cat << 'EOF' > out_web/index.html
@@ -114,8 +107,9 @@ jobs:
           </html>
           EOF
 
-      - name: Initialize & Sync Capacitor Android
+      - name: Install Capacitor & Generate Android Project
         run: |
+          npm install --save-dev @capacitor/core@6 @capacitor/cli@6 @capacitor/android@6 --legacy-peer-deps
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "ru.ziabl.academy",
@@ -130,7 +124,7 @@ jobs:
         working-directory: ./android
         run: |
           chmod +x gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon
 
       - name: Locate & Copy APK
         run: |
