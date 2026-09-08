@@ -87,6 +87,14 @@ export default function SignUpPage() {
             <button type="submit" disabled={loading} className="btn-primary w-full">
               {loading ? '...' : t('createAccount')}
             </button>
+
+            <p className="text-[11px] text-text-muted text-center leading-relaxed">
+              Нажимая кнопку «Зарегистрироваться», вы даёте{' '}
+              <Link href={`/${locale}/privacy`} className="text-accent underline hover:text-accent-light">
+                согласие на обработку персональных данных
+              </Link>{' '}
+              в соответствии с 152-ФЗ РФ и принимаете условия использования сервиса.
+            </p>
           </form>
 
           <div className="mt-6 text-center text-sm text-text-secondary">

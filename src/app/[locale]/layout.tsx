@@ -6,6 +6,7 @@ import AuthProvider from '@/components/providers/AuthProvider';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import NavigationProgress from '@/components/layout/NavigationProgress';
+import CookieBanner from '@/components/layout/CookieBanner';
 
 export default async function LocaleLayout({
   children,
@@ -27,6 +28,7 @@ export default async function LocaleLayout({
           {children}
         </main>
         <Footer />
+        <CookieBanner />
       </NextIntlClientProvider>
     </AuthProvider>
   );

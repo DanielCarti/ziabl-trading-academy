@@ -50,12 +50,20 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Info */}
+          {/* Info & Legal */}
           <div className="space-y-3">
             <h4 className="text-sm font-semibold text-text-primary uppercase tracking-wider">{t('info')}</h4>
             <p className="text-xs text-text-muted leading-relaxed">
               {t('disclaimer')}
             </p>
+            <div className="pt-1">
+              <Link
+                href={`/${locale}/privacy`}
+                className="inline-flex items-center gap-1.5 text-xs text-accent hover:underline font-medium"
+              >
+                <span>{locale === 'ru' ? 'Политика обработки ПДн (152-ФЗ)' : 'Privacy Policy & Compliance'}</span>
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -63,8 +71,12 @@ export default function Footer() {
           <p className="text-xs text-text-muted">
             © {year} Ziabl Trade Academy. {t('rights')}.
           </p>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-text-muted">v1.0</span>
+          <div className="flex items-center gap-4 text-xs text-text-muted">
+            <Link href={`/${locale}/privacy`} className="hover:text-accent transition-colors">
+              {locale === 'ru' ? 'Конфиденциальность' : 'Privacy'}
+            </Link>
+            <span>•</span>
+            <span>v1.0</span>
           </div>
         </div>
       </div>

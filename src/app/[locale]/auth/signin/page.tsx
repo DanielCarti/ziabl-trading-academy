@@ -174,6 +174,14 @@ export default function SignInPage() {
               {t('createAccount')}
             </Link>
           </div>
+
+          <p className="mt-4 text-[11px] text-text-muted text-center leading-relaxed">
+            Входя в аккаунт, вы соглашаетесь с{' '}
+            <Link href={`/${locale}/privacy`} className="text-accent hover:underline">
+              Политикой обработки персональных данных (152-ФЗ)
+            </Link>
+            .
+          </p>
         </div>
       </div>
     </div>
