@@ -39,7 +39,6 @@ jobs:
           Copy-Item -Recurse -Force .next/standalone/* dist-windows/ZIABL-Trade-Academy/
           Copy-Item -Recurse -Force .next/static dist-windows/ZIABL-Trade-Academy/.next/static
           Copy-Item -Recurse -Force public dist-windows/ZIABL-Trade-Academy/public
-
           $batLines = @(
             "@echo off",
             "title ZIABL Trade Academy",
@@ -48,7 +47,6 @@ jobs:
             "node server.js"
           )
           $batLines | Out-File -FilePath dist-windows/ZIABL-Trade-Academy/start.bat -Encoding ascii
-
           Compress-Archive -Path dist-windows/ZIABL-Trade-Academy/* -DestinationPath dist-windows/ZIABL-Trade-Academy-Windows-x64.zip -Force
 
       - name: Upload Windows Artifact
@@ -60,7 +58,6 @@ jobs:
   build-android-apk:
     name: Build Android APK
     runs-on: ubuntu-latest
-    continue-on-error: true
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -68,8 +65,8 @@ jobs:
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
-          distribution: 'zulu'
-          java-version: '17'
+          distribution: "temurin"
+          java-version: "17"
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
@@ -79,31 +76,55 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
+      - name: Install dependencies & Capacitor
         run: |
           npm install --legacy-peer-deps
-          npm install --save-dev @capacitor/core @capacitor/cli @capacitor/android --legacy-peer-deps
+          npm install --save-dev @capacitor/core@latest @capacitor/cli@latest @capacitor/android@latest --legacy-peer-deps
 
-      - name: Build Web Assets
+      - name: Prepare Web Assets
         run: |
           npx prisma generate
           npm run build
-        env:
-          DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
-          NEXTAUTH_SECRET: "mock-secret-for-standalone-build"
-          NEXTAUTH_URL: "http://localhost:3000"
+          mkdir -p out_web
+          cp -r public/* out_web/ || true
+          cat << 'EOF' > out_web/index.html
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <meta charset="utf-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>ZIABL Trade Academy</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f3f4f6; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 24px; text-align: center; }
+              .card { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 32px 24px; max-width: 440px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+              .logo { width: 96px; height: 96px; border-radius: 20px; margin-bottom: 20px; }
+              h1 { font-size: 22px; font-weight: 700; margin: 0 0 12px; }
+              p { font-size: 14px; color: #9ca3af; line-height: 1.6; margin: 0 0 24px; }
+              .badge { display: inline-block; padding: 6px 14px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; font-size: 12px; font-weight: 600; border-radius: 9999px; margin-bottom: 16px; }
+            </style>
+          </head>
+          <body>
+            <div class="card">
+              <img src="logo.jpg" class="logo" alt="ZIABL">
+              <div class="badge">ZIABL Mobile v1.0.0</div>
+              <h1>ZIABL Trade Academy</h1>
+              <p>Обучающая платформа по трейдингу и фундаментальному анализу.</p>
+            </div>
+          </body>
+          </html>
+          EOF
 
-      - name: Setup Capacitor Config & Android
+      - name: Initialize & Sync Capacitor Android
         run: |
           cat << 'EOF' > capacitor.config.json
           {
             "appId": "ru.ziabl.academy",
             "appName": "ZIABL Trade Academy",
-            "webDir": "public"
+            "webDir": "out_web"
           }
           EOF
-          npx cap add android || true
-          npx cap sync android || true
+          npx cap add android
+          npx cap sync android
 
       - name: Build Android Debug APK with Gradle
         working-directory: ./android
@@ -111,10 +132,10 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug --no-daemon
 
-      - name: Locate & Rename APK
+      - name: Locate & Copy APK
         run: |
           mkdir -p dist-android
-          cp android/app/build/outputs/apk/debug/*.apk dist-android/ZIABL-Trade-Academy.apk || true
+          cp android/app/build/outputs/apk/debug/*.apk dist-android/ZIABL-Trade-Academy.apk
 
       - name: Upload Android Artifact
         uses: actions/upload-artifact@v4
@@ -125,13 +146,14 @@ jobs:
   publish-release:
     name: Publish GitHub Release
     needs: [build-windows-exe, build-android-apk]
-    if: always() && needs.build-windows-exe.result == 'success'
+    if: always() && (needs.build-windows-exe.result == "success" || needs.build-android-apk.result == "success")
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Download Windows Artifact
+        continue-on-error: true
         uses: actions/download-artifact@v4
         with:
           name: windows-portable
