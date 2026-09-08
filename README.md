@@ -1,5 +1,7 @@
 <div align="center">
 
+<img src="public/logo.jpg" alt="ZIABL Trade Academy" width="160" style="border-radius: 28px; margin-bottom: 16px;" />
+
 # 🦅 ZIABL Trade Academy
 ### Интерактивная образовательная экосистема по трейдингу и фундаментальному анализу
 
@@ -42,6 +44,19 @@
 - 🌐 **Мультиязычность:** Полная поддержка русского и английского языков (RU / EN).
 
 ---
+
+
+---
+
+## 📸 Интерфейс платформы
+
+<div align="center">
+  <p><b>Личный кабинет инвестора: аналитика прогресса, статистика и виджеты</b></p>
+  <img src="public/screenshots/profile_dashboard.png" alt="Личный кабинет ZIABL Academy" width="92%" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 24px;" />
+  
+  <p><b>Интерактивная система тестирования с разбором ответов</b></p>
+  <img src="public/screenshots/quiz_system.png" alt="Система тестирования" width="92%" style="border-radius: 12px; border: 1px solid rgba(255,255,255,0.1);" />
+</div>
 
 ## 📖 Методология и программа обучения
 
