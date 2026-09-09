@@ -8,6 +8,8 @@ import Footer from '@/components/layout/Footer';
 import NavigationProgress from '@/components/layout/NavigationProgress';
 import CookieBanner from '@/components/layout/CookieBanner';
 
+import BottomNav from '@/components/layout/BottomNav';
+
 export default async function LocaleLayout({
   children,
   params: { locale },
@@ -24,10 +26,11 @@ export default async function LocaleLayout({
       <NextIntlClientProvider locale={locale} messages={messages}>
         <NavigationProgress />
         <Header />
-        <main className="flex-1 pt-16">
+        <main className="flex-1 pt-16 pb-16 md:pb-0">
           {children}
         </main>
         <Footer />
+        <BottomNav />
         <CookieBanner />
       </NextIntlClientProvider>
     </AuthProvider>
