@@ -117,6 +117,7 @@
     "hasAccount": "Уже есть аккаунт?",
     "createAccount": "Зарегистрироваться",
     "loginButton": "Войти",
+    "passwordMismatch": "Пароли не совпадают",
     "error": "Неверный email или пароль",
     "registerError": "Ошибка регистрации"
   },

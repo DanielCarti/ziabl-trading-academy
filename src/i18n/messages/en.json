@@ -117,6 +117,7 @@
     "hasAccount": "Already have an account?",
     "createAccount": "Register",
     "loginButton": "Sign In",
+    "passwordMismatch": "Passwords do not match",
     "error": "Invalid email or password",
     "registerError": "Registration error"
   },
