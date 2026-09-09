@@ -30,12 +30,27 @@ export default function Header() {
   const [clockTime, setClockTime] = useState<string>('');
   const [clockDate, setClockDate] = useState<string>('');
 
+  const [displayEmail, setDisplayEmail] = useState<string | null>(null);
+
   // Load avatar, name, timezone, and widget visibility toggles
   useEffect(() => {
     const updateLocalPreferences = () => {
-      const savedName = localStorage.getItem('ziabl_user_name');
+      let masterEmail: string | null = null;
+      let masterName: string | null = null;
+      const storedMaster = localStorage.getItem('ziabl_master_account');
+      if (storedMaster) {
+        try {
+          const parsed = JSON.parse(storedMaster);
+          if (parsed?.email) masterEmail = parsed.email;
+          if (parsed?.name) masterName = parsed.name;
+        } catch (e) {}
+      }
+
+      const savedName = localStorage.getItem('ziabl_user_name') || masterName;
       if (savedName) setDisplayName(savedName);
       else if (session?.user?.name) setDisplayName(session.user.name);
+
+      setDisplayEmail(masterEmail || session?.user?.email || null);
 
       const savedAvatar = localStorage.getItem('ziabl_user_avatar');
       if (savedAvatar) setUserAvatar(savedAvatar);
@@ -277,7 +292,7 @@ export default function Header() {
                     <div className="bg-surface border border-surface-border rounded-xl shadow-2xl p-2 animate-fade-in space-y-1">
                       <div className="px-3 py-2 border-b border-surface-border/60 mb-1">
                         <div className="text-xs font-semibold text-text-primary truncate">{displayName || session.user.name || 'Пользователь'}</div>
-                        <div className="text-[11px] text-text-muted truncate">{session.user.email}</div>
+                        <div className="text-[11px] text-text-muted truncate">{displayEmail || session.user.email}</div>
                       </div>
 
                       <Link
