@@ -84,7 +84,7 @@ export default function ProfilePage() {
 
   // Linked accounts state
   const [linkedAccounts, setLinkedAccounts] = useState({
-    yandex: true,
+    yandex: false,
     google: false,
     github: false,
   });
@@ -118,10 +118,14 @@ export default function ProfilePage() {
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      const stored2FA = localStorage.getItem('ziabl_2fa_enabled');
-      if (stored2FA === 'true') setTwoFactorEnabled(true);
+      const email = session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous';
+      const userKey = `ziabl_${email}`;
 
-      const storedProviders = localStorage.getItem('ziabl_linked_providers');
+      const stored2FA = localStorage.getItem(`${userKey}_2fa_enabled`);
+      if (stored2FA === 'true') setTwoFactorEnabled(true);
+      else setTwoFactorEnabled(false);
+
+      const storedProviders = localStorage.getItem(`${userKey}_linked_providers`);
       let providers = { yandex: false, google: false, github: false };
       if (storedProviders) {
         try {
@@ -129,32 +133,34 @@ export default function ProfilePage() {
         } catch (e) {}
       }
 
-      // Check current session provider and persist it
+      // Check current session provider and add to this specific user
       const activeProvider = (session?.user as any)?.provider;
       if (activeProvider === 'google') providers.google = true;
       if (activeProvider === 'github') providers.github = true;
       if (activeProvider === 'yandex') providers.yandex = true;
 
-      // Save providers so authenticating via Google does NOT lose GitHub
-      localStorage.setItem('ziabl_linked_providers', JSON.stringify(providers));
+      // Save providers scoped to this user
+      if (session?.user?.email) {
+        localStorage.setItem(`${userKey}_linked_providers`, JSON.stringify(providers));
+      }
       setLinkedAccounts(providers);
 
       // Store specific provider emails if available
-      const storedEmails = localStorage.getItem('ziabl_provider_emails');
+      const storedEmails = localStorage.getItem(`${userKey}_provider_emails`);
       let emails: Record<string, string> = {};
       if (storedEmails) {
         try { emails = JSON.parse(storedEmails); } catch (e) {}
       }
       if (activeProvider && session?.user?.email) {
         emails[activeProvider] = session.user.email;
-        localStorage.setItem('ziabl_provider_emails', JSON.stringify(emails));
+        localStorage.setItem(`${userKey}_provider_emails`, JSON.stringify(emails));
       }
       setProviderEmails(emails);
 
-      const storedAvatar = localStorage.getItem('ziabl_user_avatar');
+      const storedAvatar = localStorage.getItem(`${userKey}_user_avatar`);
       if (storedAvatar) setSelectedAvatar(storedAvatar);
 
-      const storedTz = localStorage.getItem('ziabl_user_timezone');
+      const storedTz = localStorage.getItem(`${userKey}_user_timezone`);
       if (storedTz) setSelectedTimezone(storedTz);
 
       const storedClock = localStorage.getItem('ziabl_show_clock');
@@ -233,7 +239,9 @@ export default function ProfilePage() {
     setLinkedAccounts((prev) => {
       const next = { ...prev, [unlinkProvider]: false };
       if (typeof window !== 'undefined') {
-        localStorage.setItem('ziabl_linked_providers', JSON.stringify(next));
+        const email = session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous';
+        const userKey = `ziabl_${email}`;
+        localStorage.setItem(`${userKey}_linked_providers`, JSON.stringify(next));
       }
       return next;
     });
@@ -241,10 +249,13 @@ export default function ProfilePage() {
   };
 
   const handleToggle2FA = () => {
+    const email = session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous';
+    const userKey = `ziabl_${email}`;
+
     if (twoFactorEnabled) {
       setTwoFactorEnabled(false);
       if (typeof window !== 'undefined') {
-        localStorage.setItem('ziabl_2fa_enabled', 'false');
+        localStorage.setItem(`${userKey}_2fa_enabled`, 'false');
       }
     } else {
       setTotpCode('');
@@ -261,7 +272,9 @@ export default function ProfilePage() {
     }
     setTwoFactorEnabled(true);
     if (typeof window !== 'undefined') {
-      localStorage.setItem('ziabl_2fa_enabled', 'true');
+      const email = session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous';
+      const userKey = `ziabl_${email}`;
+      localStorage.setItem(`${userKey}_2fa_enabled`, 'true');
     }
     setTwoFactorModalOpen(false);
   };
@@ -291,11 +304,14 @@ export default function ProfilePage() {
   }, [status, router, locale]);
 
   useEffect(() => {
-    const localName = typeof window !== 'undefined' ? localStorage.getItem('ziabl_user_name') : null;
+    const email = session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous';
+    const localName = typeof window !== 'undefined' ? localStorage.getItem(`ziabl_${email}_user_name`) : null;
     if (localName) {
       setNameInput(localName);
     } else if (session?.user?.name) {
       setNameInput(session.user.name);
+    } else {
+      setNameInput('Студент Ziabl');
     }
   }, [session]);
 
@@ -379,9 +395,12 @@ export default function ProfilePage() {
     if (!nameInput.trim()) return;
 
     if (typeof window !== 'undefined') {
-      localStorage.setItem('ziabl_user_name', nameInput.trim());
-      localStorage.setItem('ziabl_user_avatar', selectedAvatar);
-      localStorage.setItem('ziabl_user_timezone', selectedTimezone);
+      const email = session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous';
+      const userKey = `ziabl_${email}`;
+
+      localStorage.setItem(`${userKey}_user_name`, nameInput.trim());
+      localStorage.setItem(`${userKey}_user_avatar`, selectedAvatar);
+      localStorage.setItem(`${userKey}_user_timezone`, selectedTimezone);
       localStorage.setItem('ziabl_show_clock', String(showClock));
       localStorage.setItem('ziabl_show_cbr', String(showCbr));
       window.dispatchEvent(new Event('storage'));
