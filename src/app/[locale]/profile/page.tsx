@@ -1,6 +1,6 @@
 'use client';
 
-import { useSession, signOut } from 'next-auth/react';
+import { useSession, signOut, signIn } from 'next-auth/react';
 import { useTranslations, useLocale } from 'next-intl';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
@@ -120,11 +120,20 @@ export default function ProfilePage() {
       if (stored2FA === 'true') setTwoFactorEnabled(true);
 
       const storedProviders = localStorage.getItem('ziabl_linked_providers');
+      let providers = { yandex: false, google: false, github: false };
       if (storedProviders) {
         try {
-          setLinkedAccounts(JSON.parse(storedProviders));
+          providers = { ...providers, ...JSON.parse(storedProviders) };
         } catch (e) {}
       }
+
+      // Check current session provider
+      const activeProvider = (session?.user as any)?.provider;
+      if (activeProvider === 'google') providers.google = true;
+      if (activeProvider === 'github') providers.github = true;
+      if (activeProvider === 'yandex') providers.yandex = true;
+
+      setLinkedAccounts(providers);
 
       const storedAvatar = localStorage.getItem('ziabl_user_avatar');
       if (storedAvatar) setSelectedAvatar(storedAvatar);
@@ -138,7 +147,7 @@ export default function ProfilePage() {
       const storedCbr = localStorage.getItem('ziabl_show_cbr');
       if (storedCbr !== null) setShowCbr(storedCbr === 'true');
     }
-  }, []);
+  }, [session]);
 
   const handlePasswordSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -190,21 +199,10 @@ export default function ProfilePage() {
   };
 
   const handleConnectProvider = (provider: 'google' | 'github') => {
-    setConnectProviderModal(provider);
+    // Initiate real OAuth authorization through NextAuth
+    signIn(provider, { callbackUrl: `/${locale}/profile` });
   };
 
-  const confirmConnectProvider = () => {
-    if (!connectProviderModal) return;
-    const provider = connectProviderModal;
-    setLinkedAccounts((prev) => {
-      const next = { ...prev, [provider]: true };
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('ziabl_linked_providers', JSON.stringify(next));
-      }
-      return next;
-    });
-    setConnectProviderModal(null);
-  };
 
   const handleSelectAvatar = (avatarId: string) => {
     setSelectedAvatar(avatarId);
@@ -876,7 +874,7 @@ export default function ProfilePage() {
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-text-primary">Google</div>
                       <div className="text-[11px] text-text-muted truncate">
-                        {linkedAccounts.google ? 'user@gmail.com' : t('notConnected')}
+                        {linkedAccounts.google ? (session.user.email || 'google-connected') : t('notConnected')}
                       </div>
                     </div>
                   </div>
@@ -911,7 +909,7 @@ export default function ProfilePage() {
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-text-primary">GitHub</div>
                       <div className="text-[11px] text-text-muted truncate">
-                        {linkedAccounts.github ? 'github-connected' : t('notConnected')}
+                        {linkedAccounts.github ? (session.user.email || 'github-connected') : t('notConnected')}
                       </div>
                     </div>
                   </div>
@@ -1235,48 +1233,6 @@ export default function ProfilePage() {
                 className="w-1/2 py-2.5 px-3 rounded-xl text-xs font-semibold bg-danger text-white hover:bg-danger-dark transition-colors shadow-sm"
               >
                 {t('confirmDisconnectBtn')}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Account Connect Modal */}
-      {connectProviderModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-          <div className="card max-w-sm w-full bg-surface border-surface-border p-6 shadow-2xl relative space-y-4 animate-scale-in">
-            <div className="flex items-center gap-3 text-text-primary font-bold text-base">
-              <Globe className="w-5 h-5 text-accent shrink-0" />
-              <span>
-                {t('oauthConnectTitle', {
-                  provider: connectProviderModal === 'google' ? 'Google' : 'GitHub',
-                })}
-              </span>
-            </div>
-
-            <p className="text-xs text-text-secondary leading-relaxed">
-              {t('oauthMockNote')}
-            </p>
-
-            <div className="p-3 bg-surface-light rounded-xl border border-surface-border text-[11px] text-text-muted space-y-1">
-              <div className="font-semibold text-text-primary">Провайдер: {connectProviderModal === 'google' ? 'Google OAuth 2.0' : 'GitHub OAuth'}</div>
-              <div>Email: {session.user.email}</div>
-            </div>
-
-            <div className="flex gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setConnectProviderModal(null)}
-                className="btn-secondary w-1/2 text-xs font-semibold py-2.5"
-              >
-                {t('cancelBtn')}
-              </button>
-              <button
-                type="button"
-                onClick={confirmConnectProvider}
-                className="btn-primary w-1/2 text-xs font-semibold py-2.5"
-              >
-                {t('connect')}
               </button>
             </div>
           </div>

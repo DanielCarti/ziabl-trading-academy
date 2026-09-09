@@ -117,11 +117,14 @@ export const authOptions: AuthOptions = {
       }
       return true;
     },
-    async jwt({ token, user, trigger, session }) {
+    async jwt({ token, user, account, trigger, session }) {
       if (user) {
         token.id = user.id;
         token.name = user.name;
         token.role = (user as any).role || (user.email?.toLowerCase() === adminEmail ? 'ADMIN' : 'USER');
+      }
+      if (account?.provider) {
+        token.provider = account.provider;
       }
       if (trigger === 'update' && session?.name) {
         token.name = session.name;
@@ -133,6 +136,7 @@ export const authOptions: AuthOptions = {
         (session.user as any).id = token.id;
         if (token.name) session.user.name = token.name as string;
         (session.user as any).role = token.role;
+        (session.user as any).provider = token.provider || 'credentials';
       }
       return session;
     },
