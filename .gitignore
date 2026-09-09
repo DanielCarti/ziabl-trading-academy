@@ -11,3 +11,7 @@ ssl-certs/
 coverage/
 .vscode/
 .idea/
+out_web/
+dist-android/
+android/
+*.tsbuildinfo

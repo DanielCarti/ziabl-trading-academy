@@ -80,32 +80,7 @@ jobs:
         run: |
           mkdir -p out_web
           cp -r public/* out_web/ || true
-          cat << 'EOF' > out_web/index.html
-          <!DOCTYPE html>
-          <html>
-          <head>
-            <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>ZIABL Trade Academy</title>
-            <style>
-              body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b0f19; color: #f3f4f6; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 24px; text-align: center; }
-              .card { background: #111827; border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 32px 24px; max-width: 440px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
-              .logo { width: 96px; height: 96px; border-radius: 20px; margin-bottom: 20px; }
-              h1 { font-size: 22px; font-weight: 700; margin: 0 0 12px; }
-              p { font-size: 14px; color: #9ca3af; line-height: 1.6; margin: 0 0 24px; }
-              .badge { display: inline-block; padding: 6px 14px; background: rgba(16,185,129,0.15); border: 1px solid rgba(16,185,129,0.3); color: #34d399; font-size: 12px; font-weight: 600; border-radius: 9999px; margin-bottom: 16px; }
-            </style>
-          </head>
-          <body>
-            <div class="card">
-              <img src="logo.jpg" class="logo" alt="ZIABL">
-              <div class="badge">ZIABL Mobile v1.0.0</div>
-              <h1>ZIABL Trade Academy</h1>
-              <p>Обучающая платформа по трейдингу и фундаментальному анализу.</p>
-            </div>
-          </body>
-          </html>
-          EOF
+          node scripts/build_mobile_bundle.js
 
       - name: Install Capacitor & Generate Android Project
         run: |
