@@ -88,6 +88,8 @@ export default function ProfilePage() {
     google: false,
     github: false,
   });
+  const [providerEmails, setProviderEmails] = useState<Record<string, string>>({});
+
 
   // Calculate password strength
   const getPasswordStrength = (pass: string) => {
@@ -127,13 +129,27 @@ export default function ProfilePage() {
         } catch (e) {}
       }
 
-      // Check current session provider
+      // Check current session provider and persist it
       const activeProvider = (session?.user as any)?.provider;
       if (activeProvider === 'google') providers.google = true;
       if (activeProvider === 'github') providers.github = true;
       if (activeProvider === 'yandex') providers.yandex = true;
 
+      // Save providers so authenticating via Google does NOT lose GitHub
+      localStorage.setItem('ziabl_linked_providers', JSON.stringify(providers));
       setLinkedAccounts(providers);
+
+      // Store specific provider emails if available
+      const storedEmails = localStorage.getItem('ziabl_provider_emails');
+      let emails: Record<string, string> = {};
+      if (storedEmails) {
+        try { emails = JSON.parse(storedEmails); } catch (e) {}
+      }
+      if (activeProvider && session?.user?.email) {
+        emails[activeProvider] = session.user.email;
+        localStorage.setItem('ziabl_provider_emails', JSON.stringify(emails));
+      }
+      setProviderEmails(emails);
 
       const storedAvatar = localStorage.getItem('ziabl_user_avatar');
       if (storedAvatar) setSelectedAvatar(storedAvatar);
@@ -841,7 +857,9 @@ export default function ProfilePage() {
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-text-primary">Яндекс ID</div>
                       <div className="text-[11px] text-text-muted truncate">
-                        {linkedAccounts.yandex ? (session.user.email || 'yandex-user') : t('notConnected')}
+                        {linkedAccounts.yandex
+                          ? (providerEmails.yandex || session.user.email || 'yandex-connected')
+                          : t('notConnected')}
                       </div>
                     </div>
                   </div>
@@ -852,7 +870,11 @@ export default function ProfilePage() {
                       if (linkedAccounts.yandex) {
                         setUnlinkProvider('yandex');
                       } else {
-                        setLinkedAccounts((prev) => ({ ...prev, yandex: true }));
+                        setLinkedAccounts((prev) => {
+                          const next = { ...prev, yandex: true };
+                          localStorage.setItem('ziabl_linked_providers', JSON.stringify(next));
+                          return next;
+                        });
                       }
                     }}
                     className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
@@ -874,7 +896,9 @@ export default function ProfilePage() {
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-text-primary">Google</div>
                       <div className="text-[11px] text-text-muted truncate">
-                        {linkedAccounts.google ? (session.user.email || 'google-connected') : t('notConnected')}
+                        {linkedAccounts.google
+                          ? (providerEmails.google || session.user.email || 'google-connected')
+                          : t('notConnected')}
                       </div>
                     </div>
                   </div>
@@ -909,7 +933,9 @@ export default function ProfilePage() {
                     <div className="min-w-0 flex-1">
                       <div className="text-xs font-semibold text-text-primary">GitHub</div>
                       <div className="text-[11px] text-text-muted truncate">
-                        {linkedAccounts.github ? (session.user.email || 'github-connected') : t('notConnected')}
+                        {linkedAccounts.github
+                          ? (providerEmails.github || session.user.email || 'github-connected')
+                          : t('notConnected')}
                       </div>
                     </div>
                   </div>
