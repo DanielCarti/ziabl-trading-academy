@@ -25,6 +25,7 @@ export async function GET(req: NextRequest) {
         showClock: true,
         showCbr: true,
         twoFactorEnabled: true,
+        passwordHash: true,
         accounts: {
           select: {
             provider: true,
@@ -38,6 +39,9 @@ export async function GET(req: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    const { passwordHash, ...userClean } = user;
+    const hasPassword = Boolean(passwordHash);
 
     const providerEmails: Record<string, string> = {};
     if (user.accounts && Array.isArray(user.accounts)) {
@@ -56,7 +60,7 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ...user, providerEmails });
+    return NextResponse.json({ ...userClean, hasPassword, providerEmails });
   } catch (error) {
     console.error('Error fetching user preferences:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

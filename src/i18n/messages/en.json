@@ -228,6 +228,22 @@
     "setup2FAStep2": "2. Enter the 6-digit one-time verification code:",
     "secretKey": "Secret Key",
     "verifyAndEnable": "Verify & Enable",
-    "invalidCode": "Invalid verification code (must be 6 digits)"
+    "invalidCode": "Invalid verification code (must be 6 digits)",
+    "emailSettingsTitle": "Email Address",
+    "emailSettingsDesc": "Primary email address for account sign in and notifications",
+    "saveEmail": "Save Changes",
+    "emailSuccess": "Email updated successfully!",
+    "emailInUse": "This email address is already in use by another account",
+    "emailInvalid": "Invalid email address",
+    "setPasswordTitle": "Set Password",
+    "setPasswordDesc": "You signed in via social network. Set a password to be able to sign in using your email.",
+    "setPasswordBtn": "Set Password",
+    "deleteAccountTitle": "Delete Account",
+    "deleteAccountNotice": "Once confirmed, your account will be hidden and unavailable to others. In compliance with data privacy regulations, your profile data and learning progress will be erased.",
+    "deleteAccountBtn": "Delete Profile",
+    "deleteConfirmTitle": "Delete account permanently?",
+    "deleteConfirmText": "This action cannot be undone. All your account information, course progress, and quiz history will be erased forever. Are you sure?",
+    "deleteConfirmBtn": "Yes, Delete My Account",
+    "forgotPasswordLink": "If you do not remember your current password, use password reset"
   }
 }

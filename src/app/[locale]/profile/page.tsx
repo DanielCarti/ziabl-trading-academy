@@ -9,7 +9,8 @@ import {
   User, Mail, Shield, BookOpen, Award, CheckCircle2,
   Clock, ArrowRight, LayoutDashboard, Settings, LogOut,
   Sparkles, Moon, Sun, Globe, KeyRound, Lock, Smartphone,
-  Check, QrCode, ExternalLink, AlertCircle, Copy, Percent
+  Check, QrCode, ExternalLink, AlertCircle, Copy, Percent,
+  Trash2, Eye, EyeOff
 } from 'lucide-react';
 import { useTheme } from '@/components/providers/ThemeProvider';
 import { startNavigationProgress } from '@/components/layout/NavigationProgress';
@@ -67,12 +68,28 @@ export default function ProfilePage() {
   const [unlinkProvider, setUnlinkProvider] = useState<'yandex' | 'google' | 'github' | null>(null);
   const [connectProviderModal, setConnectProviderModal] = useState<'google' | 'github' | null>(null);
 
-  // Password change state
+  // Email change state
+  const [emailInput, setEmailInput] = useState('');
+  const [emailLoading, setEmailLoading] = useState(false);
+  const [emailError, setEmailError] = useState('');
+  const [emailSuccess, setEmailSuccess] = useState(false);
+
+  // Password change / set state
+  const [hasPassword, setHasPassword] = useState<boolean>(true);
+  const [passwordLoading, setPasswordLoading] = useState(false);
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState('');
   const [passwordSuccess, setPasswordSuccess] = useState(false);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Account deletion modal state
+  const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
+  const [deleteAccountLoading, setDeleteAccountLoading] = useState(false);
+  const [deleteAccountError, setDeleteAccountError] = useState('');
 
   // 2FA state
   const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
@@ -223,6 +240,12 @@ export default function ProfilePage() {
         .then((res) => (res.ok ? res.json() : null))
         .then((dbUser) => {
           if (dbUser) {
+            if (dbUser.email) {
+              setEmailInput(dbUser.email);
+            }
+            if (typeof dbUser.hasPassword === 'boolean') {
+              setHasPassword(dbUser.hasPassword);
+            }
             if (dbUser.name) {
               setNameInput(dbUser.name);
               localStorage.setItem(`${userKey}_user_name`, dbUser.name);
@@ -285,21 +308,12 @@ export default function ProfilePage() {
     }
   }, [session]);
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPasswordError('');
     setPasswordSuccess(false);
 
-    // Verify current password
-    const savedPassword = typeof window !== 'undefined' ? localStorage.getItem('ziabl_user_password') : null;
-    const expectedCurrentPassword = savedPassword || 'demo123'; // Default demo password
-
-    if (!currentPassword) {
-      setPasswordError(t('currentPasswordWrong'));
-      return;
-    }
-
-    if (currentPassword !== expectedCurrentPassword && currentPassword !== 'admin123') {
+    if (hasPassword && !currentPassword) {
       setPasswordError(t('currentPasswordWrong'));
       return;
     }
@@ -314,16 +328,110 @@ export default function ProfilePage() {
       return;
     }
 
-    // Save newly updated password
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('ziabl_user_password', newPassword);
+    setPasswordLoading(true);
+    try {
+      const res = await fetch('/api/user/password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          currentPassword: hasPassword ? currentPassword : null,
+          newPassword,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        if (data.error && data.error.toLowerCase().includes('current password')) {
+          setPasswordError(t('currentPasswordWrong'));
+        } else {
+          setPasswordError(data.error || 'Ошибка смены пароля');
+        }
+        setPasswordLoading(false);
+        return;
+      }
+
+      // Successful password update or creation
+      setHasPassword(true);
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('ziabl_user_password', newPassword);
+      }
+
+      setPasswordSuccess(true);
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setTimeout(() => setPasswordSuccess(false), 4000);
+    } catch (err) {
+      setPasswordError('Не удалось обновить пароль. Попробуйте снова.');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleEmailSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setEmailError('');
+    setEmailSuccess(false);
+
+    if (!emailInput || !emailInput.includes('@')) {
+      setEmailError(t('emailInvalid'));
+      return;
     }
 
-    setPasswordSuccess(true);
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setTimeout(() => setPasswordSuccess(false), 4000);
+    setEmailLoading(true);
+    try {
+      const res = await fetch('/api/user/email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ newEmail: emailInput.trim() }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 409) {
+          setEmailError(t('emailInUse'));
+        } else {
+          setEmailError(data.error || 'Ошибка смены email');
+        }
+        setEmailLoading(false);
+        return;
+      }
+
+      setEmailSuccess(true);
+      if (update) {
+        await update({ email: emailInput.trim() });
+      }
+      setTimeout(() => setEmailSuccess(false), 4000);
+    } catch (err) {
+      setEmailError('Не удалось обновить почту');
+    } finally {
+      setEmailLoading(false);
+    }
+  };
+
+  const handleDeleteAccount = async () => {
+    setDeleteAccountLoading(true);
+    setDeleteAccountError('');
+    try {
+      const res = await fetch('/api/user/delete', {
+        method: 'POST',
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        setDeleteAccountError(data.error || 'Ошибка удаления аккаунта');
+        setDeleteAccountLoading(false);
+        return;
+      }
+
+      // Account deleted, clear storage and log out
+      if (typeof window !== 'undefined') {
+        localStorage.clear();
+      }
+      signOut({ callbackUrl: `/${locale}/auth/signin` });
+    } catch (err) {
+      setDeleteAccountError('Не удалось удалить аккаунт');
+      setDeleteAccountLoading(false);
+    }
   };
 
   const handleToggleClock = () => {
@@ -1027,135 +1135,68 @@ export default function ProfilePage() {
               </form>
             </div>
 
-            {/* Linked Social Accounts Card */}
+            {/* Email Address Card (Like Anilib) */}
             <div className="card space-y-4">
               <div>
                 <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-accent" />
-                  {t('linkedAccounts')}
+                  <Mail className="w-4 h-4 text-accent" />
+                  {t('emailSettingsTitle')}
                 </h3>
                 <p className="text-xs text-text-muted mt-0.5">
-                  {t('linkedAccountsDesc')}
+                  {t('emailSettingsDesc')}
                 </p>
               </div>
 
-              <div className="space-y-2.5">
-                {/* Yandex */}
-                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 rounded-lg bg-[#fc3f1d]/15 text-[#fc3f1d] flex items-center justify-center font-bold text-sm shrink-0">
-                      Я
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-text-primary">Яндекс ID</div>
-                      <div className="text-[11px] text-text-muted truncate">
-                        {linkedAccounts.yandex
-                          ? (providerEmails.yandex || (activeProvider === 'yandex' ? session.user.email : null) || 'Подключено')
-                          : t('notConnected')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (linkedAccounts.yandex) {
-                        setUnlinkProvider('yandex');
-                      } else {
-                        handleConnectProvider('yandex');
-                      }
-                    }}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
-                      linkedAccounts.yandex
-                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-danger/15 hover:text-danger hover:border-danger/30'
-                        : 'btn-secondary !py-1 !px-2.5 text-xs'
-                    }`}
-                  >
-                    {linkedAccounts.yandex ? t('connected') : t('connect')}
-                  </button>
+              {emailSuccess && (
+                <div className="p-3 rounded-xl bg-accent/10 border border-accent/30 text-accent text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{t('emailSuccess')}</span>
                 </div>
+              )}
 
-                {/* Google */}
-                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center font-bold text-sm shrink-0">
-                      G
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-text-primary">Google</div>
-                      <div className="text-[11px] text-text-muted truncate">
-                        {linkedAccounts.google
-                          ? (providerEmails.google || (activeProvider === 'google' ? session.user.email : null) || 'Подключено')
-                          : t('notConnected')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (linkedAccounts.google) {
-                        setUnlinkProvider('google');
-                      } else {
-                        handleConnectProvider('google');
-                      }
-                    }}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
-                      linkedAccounts.google
-                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-danger/15 hover:text-danger hover:border-danger/30'
-                        : 'btn-secondary !py-1 !px-2.5 text-xs'
-                    }`}
-                  >
-                    {linkedAccounts.google ? t('connected') : t('connect')}
-                  </button>
+              {emailError && (
+                <div className="p-3 rounded-xl bg-danger/10 border border-danger/30 text-danger text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{emailError}</span>
                 </div>
+              )}
 
-                {/* GitHub */}
-                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <div className="w-8 h-8 rounded-lg bg-surface-border text-text-primary flex items-center justify-center font-bold text-sm shrink-0">
-                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
-                        <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
-                      </svg>
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-xs font-semibold text-text-primary">GitHub</div>
-                      <div className="text-[11px] text-text-muted truncate">
-                        {linkedAccounts.github
-                          ? (providerEmails.github || (activeProvider === 'github' ? session.user.email : null) || 'Подключено')
-                          : t('notConnected')}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (linkedAccounts.github) {
-                        setUnlinkProvider('github');
-                      } else {
-                        handleConnectProvider('github');
-                      }
+              <form onSubmit={handleEmailSubmit} className="space-y-3">
+                <div>
+                  <input
+                    type="email"
+                    value={emailInput}
+                    onChange={(e) => {
+                      setEmailInput(e.target.value);
+                      if (emailError) setEmailError('');
                     }}
-                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
-                      linkedAccounts.github
-                        ? 'bg-accent/15 text-accent border border-accent/30 hover:bg-danger/15 hover:text-danger hover:border-danger/30'
-                        : 'btn-secondary !py-1 !px-2.5 text-xs'
-                    }`}
-                  >
-                    {linkedAccounts.github ? t('connected') : t('connect')}
-                  </button>
+                    placeholder="example@mail.ru"
+                    required
+                    className="input-field text-sm"
+                  />
                 </div>
-              </div>
+                <button
+                  type="submit"
+                  disabled={emailLoading || emailInput === session?.user?.email}
+                  className="btn-secondary text-xs font-semibold py-2 px-4 hover:border-accent/40 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {emailLoading ? 'Сохранение...' : t('saveEmail')}
+                </button>
+              </form>
             </div>
 
-            {/* Security & Password Card */}
+            {/* Smart Password Management Card (Like Anilib) */}
             <div className="card space-y-5">
               <div>
                 <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
                   <KeyRound className="w-4 h-4 text-accent" />
-                  {t('security')}
+                  {hasPassword ? t('changePassword') : t('setPasswordTitle')}
                 </h3>
+                {!hasPassword && (
+                  <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                    {t('setPasswordDesc')}
+                  </p>
+                )}
               </div>
 
               {passwordSuccess && (
@@ -1174,23 +1215,34 @@ export default function ProfilePage() {
 
               {/* Password Form */}
               <form onSubmit={handlePasswordSubmit} className="space-y-3.5">
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary mb-1">
-                    {t('currentPassword')}
-                  </label>
-                  <input
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="••••••••"
-                    className="input-field text-sm"
-                  />
-                </div>
+                {hasPassword && (
+                  <div>
+                    <label className="block text-xs font-semibold text-text-secondary mb-1">
+                      {t('currentPassword')}
+                    </label>
+                    <div className="relative">
+                      <input
+                        type={showCurrentPassword ? 'text' : 'password'}
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        placeholder="••••••••"
+                        className="input-field text-sm pr-10"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => setShowCurrentPassword((prev) => !prev)}
+                        className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                      >
+                        {showCurrentPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-semibold text-text-secondary">
-                      {t('newPassword')}
+                      {hasPassword ? t('newPassword') : 'Пароль'}
                     </label>
                     {newPassword && (
                       <span className={`text-[10px] font-bold uppercase tracking-wider ${
@@ -1200,17 +1252,26 @@ export default function ProfilePage() {
                       </span>
                     )}
                   </div>
-                  <input
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => {
-                      setNewPassword(e.target.value);
-                      if (passwordError) setPasswordError('');
-                    }}
-                    placeholder="••••••••"
-                    required
-                    className="input-field text-sm"
-                  />
+                  <div className="relative">
+                    <input
+                      type={showNewPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value);
+                        if (passwordError) setPasswordError('');
+                      }}
+                      placeholder="••••••••"
+                      required
+                      className="input-field text-sm pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
 
                   {/* Dynamic Password Strength Progress Bar */}
                   {newPassword && (
@@ -1231,7 +1292,7 @@ export default function ProfilePage() {
                 <div>
                   <div className="flex items-center justify-between mb-1">
                     <label className="block text-xs font-semibold text-text-secondary">
-                      {t('confirmNewPassword')}
+                      {hasPassword ? t('confirmNewPassword') : 'Повторите пароль'}
                     </label>
                     {confirmPassword && newPassword !== confirmPassword && (
                       <span className="text-[10px] text-danger font-medium">
@@ -1244,23 +1305,42 @@ export default function ProfilePage() {
                       </span>
                     )}
                   </div>
-                  <input
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => {
-                      setConfirmPassword(e.target.value);
-                      if (passwordError) setPasswordError('');
-                    }}
-                    placeholder="••••••••"
-                    required
-                    className={`input-field text-sm transition-colors ${
-                      confirmPassword && newPassword !== confirmPassword ? 'border-danger/60 focus:border-danger' : ''
-                    }`}
-                  />
+                  <div className="relative">
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value);
+                        if (passwordError) setPasswordError('');
+                      }}
+                      placeholder="••••••••"
+                      required
+                      className={`input-field text-sm pr-10 transition-colors ${
+                        confirmPassword && newPassword !== confirmPassword ? 'border-danger/60 focus:border-danger' : ''
+                      }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword((prev) => !prev)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
                 </div>
 
-                <button type="submit" className="btn-secondary w-full text-xs font-semibold py-2.5 hover:border-accent/40">
-                  {t('updatePasswordBtn')}
+                {hasPassword && (
+                  <div className="p-2.5 rounded-xl bg-surface-light border border-surface-border text-xs text-text-muted">
+                    <span>{t('forgotPasswordLink')}</span>
+                  </div>
+                )}
+
+                <button
+                  type="submit"
+                  disabled={passwordLoading}
+                  className="btn-secondary w-full text-xs font-semibold py-2.5 hover:border-accent/40 disabled:opacity-50"
+                >
+                  {passwordLoading ? 'Сохранение...' : hasPassword ? t('updatePasswordBtn') : t('setPasswordBtn')}
                 </button>
               </form>
 
@@ -1303,6 +1383,150 @@ export default function ProfilePage() {
                   <span>{twoFactorEnabled ? t('disable2FA') : t('enable2FA')}</span>
                 </button>
               </div>
+            </div>
+
+            {/* Linked Social Accounts Card (Anilib Style) */}
+            <div className="card space-y-4">
+              <div>
+                <h3 className="text-base font-bold text-text-primary flex items-center gap-2">
+                  <Globe className="w-4 h-4 text-accent" />
+                  {t('linkedAccounts')}
+                </h3>
+                <p className="text-xs text-text-muted mt-0.5">
+                  {t('linkedAccountsDesc')}
+                </p>
+              </div>
+
+              <div className="space-y-2.5">
+                {/* Yandex */}
+                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-[#fc3f1d]/15 text-[#fc3f1d] flex items-center justify-center font-bold text-sm shrink-0">
+                      Я
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-text-primary">Яндекс ID</div>
+                      <div className="text-[11px] text-text-muted truncate">
+                        {linkedAccounts.yandex
+                          ? (providerEmails.yandex || (activeProvider === 'yandex' ? session.user.email : null) || 'Подключено')
+                          : t('notConnected')}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (linkedAccounts.yandex) {
+                        setUnlinkProvider('yandex');
+                      } else {
+                        handleConnectProvider('yandex');
+                      }
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
+                      linkedAccounts.yandex
+                        ? 'bg-danger/10 text-danger border border-danger/30 hover:bg-danger hover:text-white'
+                        : 'btn-secondary !py-1 !px-2.5 text-xs'
+                    }`}
+                  >
+                    {linkedAccounts.yandex ? t('disconnect') : t('connect')}
+                  </button>
+                </div>
+
+                {/* Google */}
+                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-red-500/10 text-red-500 flex items-center justify-center font-bold text-sm shrink-0">
+                      G
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-text-primary">Google</div>
+                      <div className="text-[11px] text-text-muted truncate">
+                        {linkedAccounts.google
+                          ? (providerEmails.google || (activeProvider === 'google' ? session.user.email : null) || 'Подключено')
+                          : t('notConnected')}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (linkedAccounts.google) {
+                        setUnlinkProvider('google');
+                      } else {
+                        handleConnectProvider('google');
+                      }
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
+                      linkedAccounts.google
+                        ? 'bg-danger/10 text-danger border border-danger/30 hover:bg-danger hover:text-white'
+                        : 'btn-secondary !py-1 !px-2.5 text-xs'
+                    }`}
+                  >
+                    {linkedAccounts.google ? t('disconnect') : t('connect')}
+                  </button>
+                </div>
+
+                {/* GitHub */}
+                <div className="flex items-center justify-between gap-4 p-3 rounded-xl bg-surface-light border border-surface-border">
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    <div className="w-8 h-8 rounded-lg bg-surface-border text-text-primary flex items-center justify-center font-bold text-sm shrink-0">
+                      <svg className="w-4 h-4 fill-current" viewBox="0 0 24 24">
+                        <path fillRule="evenodd" clipRule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" />
+                      </svg>
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-xs font-semibold text-text-primary">GitHub</div>
+                      <div className="text-[11px] text-text-muted truncate">
+                        {linkedAccounts.github
+                          ? (providerEmails.github || (activeProvider === 'github' ? session.user.email : null) || 'Подключено')
+                          : t('notConnected')}
+                      </div>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (linkedAccounts.github) {
+                        setUnlinkProvider('github');
+                      } else {
+                        handleConnectProvider('github');
+                      }
+                    }}
+                    className={`text-xs px-3 py-1.5 rounded-lg font-medium transition-colors shrink-0 ${
+                      linkedAccounts.github
+                        ? 'bg-danger/10 text-danger border border-danger/30 hover:bg-danger hover:text-white'
+                        : 'btn-secondary !py-1 !px-2.5 text-xs'
+                    }`}
+                  >
+                    {linkedAccounts.github ? t('disconnect') : t('connect')}
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Account Deletion Card (152-FZ Compliance, Anilib Style) */}
+            <div className="card space-y-3.5 border-danger/20 bg-danger/5">
+              <div>
+                <h3 className="text-base font-bold text-danger flex items-center gap-2">
+                  <Trash2 className="w-4 h-4 text-danger" />
+                  {t('deleteAccountTitle')}
+                </h3>
+                <p className="text-xs text-text-muted mt-1 leading-relaxed">
+                  {t('deleteAccountNotice')}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setDeleteAccountModalOpen(true)}
+                className="btn-secondary !text-danger hover:!bg-danger hover:!text-white border-danger/40 text-xs font-semibold py-2 px-3.5 flex items-center gap-2"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+                <span>{t('deleteAccountBtn')}</span>
+              </button>
             </div>
           </div>
         </div>
@@ -1447,6 +1671,48 @@ export default function ProfilePage() {
                 className="w-1/2 py-2.5 px-3 rounded-xl text-xs font-semibold bg-danger text-white hover:bg-danger-dark transition-colors shadow-sm"
               >
                 {t('confirmDisconnectBtn')}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Account Confirmation Modal (152-FZ) */}
+      {deleteAccountModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
+          <div className="card max-w-sm w-full bg-surface border-danger/40 p-6 shadow-2xl relative space-y-4 animate-scale-in">
+            <div className="flex items-center gap-3 text-danger font-bold text-base">
+              <AlertCircle className="w-6 h-6 shrink-0" />
+              <span>{t('deleteConfirmTitle')}</span>
+            </div>
+
+            <p className="text-xs text-text-secondary leading-relaxed">
+              {t('deleteConfirmText')}
+            </p>
+
+            {deleteAccountError && (
+              <div className="p-2.5 rounded-xl bg-danger/10 border border-danger/30 text-danger text-xs flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{deleteAccountError}</span>
+              </div>
+            )}
+
+            <div className="flex gap-2 pt-2">
+              <button
+                type="button"
+                disabled={deleteAccountLoading}
+                onClick={() => setDeleteAccountModalOpen(false)}
+                className="btn-secondary w-1/2 text-xs font-semibold py-2.5"
+              >
+                {t('cancelBtn')}
+              </button>
+              <button
+                type="button"
+                disabled={deleteAccountLoading}
+                onClick={handleDeleteAccount}
+                className="w-1/2 py-2.5 px-3 rounded-xl text-xs font-semibold bg-danger text-white hover:bg-danger-dark transition-colors shadow-sm disabled:opacity-50"
+              >
+                {deleteAccountLoading ? 'Удаление...' : t('deleteConfirmBtn')}
               </button>
             </div>
           </div>
