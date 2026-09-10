@@ -54,12 +54,14 @@ export default function Header() {
       const savedTz = (masterEmail ? localStorage.getItem(`ziabl_${masterEmail}_user_timezone`) : null) || localStorage.getItem('ziabl_user_timezone');
       if (savedTz) setUserTimezone(savedTz);
 
-      // Account-specific or global widget preferences
-      const savedClock = masterEmail 
-        ? localStorage.getItem(`ziabl_${masterEmail}_show_clock`) ?? localStorage.getItem('ziabl_show_clock')
-        : localStorage.getItem('ziabl_show_clock');
-      // Default for non-logged-in users or when not explicitly set is FALSE (off)
-      setShowClockWidget(savedClock === 'true');
+      // Account-specific or global widget preferences:
+      // Clock is STRICTLY disabled by default for non-authenticated guests!
+      if (masterEmail && session?.user) {
+        const savedClock = localStorage.getItem(`ziabl_${masterEmail}_show_clock`);
+        setShowClockWidget(savedClock === 'true');
+      } else {
+        setShowClockWidget(false);
+      }
 
       const savedCbr = masterEmail
         ? localStorage.getItem(`ziabl_${masterEmail}_show_cbr`) ?? localStorage.getItem('ziabl_show_cbr')
@@ -284,7 +286,8 @@ export default function Header() {
             {/* Auth */}
             {status === 'loading' ? (
               <div className="flex items-center gap-2">
-                <div className="w-28 h-9 rounded-xl bg-surface-light/60 animate-pulse border border-surface-border/50" />
+                <div className="w-16 h-9 rounded-xl bg-surface-light/40 border border-transparent" />
+                <div className="w-24 h-9 rounded-xl bg-accent/20 border border-transparent animate-pulse" />
               </div>
             ) : session?.user ? (
               <div
