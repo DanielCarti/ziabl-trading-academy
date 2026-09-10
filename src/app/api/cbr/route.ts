@@ -31,9 +31,9 @@ let memoryCache: {
   lastCheckedAt: number;
   source: string;
 } = {
-  rate: 18.0,
-  date: '2024-07-26',
-  nextMeeting: '2024-09-13',
+  rate: 14.0,
+  date: '2026-09-10',
+  nextMeeting: '2025-10-24',
   lastCheckedAt: 0,
   source: 'cbr.ru',
 };

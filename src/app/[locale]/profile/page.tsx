@@ -60,7 +60,7 @@ export default function ProfilePage() {
 
   const [selectedAvatar, setSelectedAvatar] = useState<string>('avatar-1');
   const [selectedTimezone, setSelectedTimezone] = useState<string>('Europe/Moscow');
-  const [showClock, setShowClock] = useState<boolean>(true);
+  const [showClock, setShowClock] = useState<boolean>(false);
   const [showCbr, setShowCbr] = useState<boolean>(true);
 
   // Unlink confirmation modal and connect modal
@@ -250,16 +250,13 @@ export default function ProfilePage() {
 
             // Sync connected accounts from DB if present
             if (Array.isArray(dbUser.accounts)) {
-              setLinkedAccounts((prev) => {
-                const next = { ...prev };
-                dbUser.accounts.forEach((acc: any) => {
-                  if (acc.provider === 'google') next.google = true;
-                  if (acc.provider === 'github') next.github = true;
-                  if (acc.provider === 'yandex') next.yandex = true;
-                });
-                localStorage.setItem(`${userKey}_linked_providers`, JSON.stringify(next));
-                return next;
-              });
+              const freshProviders = {
+                google: dbUser.accounts.some((a: any) => a.provider === 'google') || activeProvider === 'google',
+                github: dbUser.accounts.some((a: any) => a.provider === 'github') || activeProvider === 'github',
+                yandex: dbUser.accounts.some((a: any) => a.provider === 'yandex') || activeProvider === 'yandex',
+              };
+              setLinkedAccounts(freshProviders);
+              localStorage.setItem(`${userKey}_linked_providers`, JSON.stringify(freshProviders));
             }
           }
         })
@@ -354,8 +351,9 @@ export default function ProfilePage() {
 
   const confirmUnlink = () => {
     if (!unlinkProvider) return;
+    const providerToUnlink = unlinkProvider;
     setLinkedAccounts((prev) => {
-      const next = { ...prev, [unlinkProvider]: false };
+      const next = { ...prev, [providerToUnlink]: false };
       if (typeof window !== 'undefined') {
         const masterEmail = getAccountOwnerKey(session?.user?.email) || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
         const userKey = `ziabl_${masterEmail}`;
@@ -365,11 +363,18 @@ export default function ProfilePage() {
         if (storedEmails) {
           try {
             const parsed = JSON.parse(storedEmails);
-            delete parsed[unlinkProvider];
+            delete parsed[providerToUnlink];
             localStorage.setItem(`${userKey}_provider_emails`, JSON.stringify(parsed));
             setProviderEmails(parsed);
           } catch (e) {}
         }
+
+        // Call backend API to delete Account link from PostgreSQL
+        fetch('/api/auth/unlink', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ provider: providerToUnlink }),
+        }).catch((e) => console.error('Error unlinking account in DB:', e));
       }
       return next;
     });

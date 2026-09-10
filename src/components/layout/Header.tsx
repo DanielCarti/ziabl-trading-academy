@@ -24,7 +24,7 @@ export default function Header() {
   const [displayName, setDisplayName] = useState<string | null>(null);
   const [userAvatar, setUserAvatar] = useState<string>('avatar-1');
   const [userTimezone, setUserTimezone] = useState<string>('Europe/Moscow');
-  const [showClockWidget, setShowClockWidget] = useState<boolean>(true);
+  const [showClockWidget, setShowClockWidget] = useState<boolean>(false);
   const [showCbrWidget, setShowCbrWidget] = useState<boolean>(true);
   const [cbrInfo, setCbrInfo] = useState<{ rate: number; date?: string; nextMeeting?: string } | null>(null);
   const [clockTime, setClockTime] = useState<string>('');
@@ -96,7 +96,7 @@ export default function Header() {
           });
         }
       })
-      .catch(() => setCbrInfo({ rate: 18.0, date: '26.07.2024', nextMeeting: '13.09.2024' }));
+      .catch(() => setCbrInfo({ rate: 14.0, date: '2026-09-10', nextMeeting: '2025-10-24' }));
   }, []);
 
   // Update live clock every second with user timezone
@@ -219,12 +219,12 @@ export default function Header() {
             {/* Central Bank of Russia Key Rate Widget */}
             {showCbrWidget && (
               <div
-                title={`Ключевая ставка Банка России: ${cbrInfo ? cbrInfo.rate.toFixed(1) : '18.0'}%${cbrInfo?.date ? ` (установлена: ${cbrInfo.date})` : ''}${cbrInfo?.nextMeeting ? `\nСледующее заседание Совета директоров ЦБ: ${cbrInfo.nextMeeting}` : ''}\nОбновляется по официальному календарю решений ЦБ РФ.`}
+                title={`Ключевая ставка Банка России: ${cbrInfo ? cbrInfo.rate.toFixed(1) : '14.0'}%${cbrInfo?.date ? ` (установлена: ${cbrInfo.date})` : ''}${cbrInfo?.nextMeeting ? `\nСледующее заседание Совета директоров ЦБ: ${cbrInfo.nextMeeting}` : ''}\nОбновляется по официальному календарю решений ЦБ РФ.`}
                 className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-surface-light/80 border border-surface-border/70 text-xs select-none hover:border-accent/40 transition-colors cursor-help"
               >
                 <span className="text-[11px] font-semibold text-text-muted uppercase">ЦБ РФ:</span>
                 <span className="font-mono font-bold text-accent">
-                  {cbrInfo !== null ? `${cbrInfo.rate.toFixed(1)}%` : '18.0%'}
+                  {cbrInfo !== null ? `${cbrInfo.rate.toFixed(1)}%` : '14.0%'}
                 </span>
               </div>
             )}
