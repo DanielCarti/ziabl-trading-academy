@@ -260,10 +260,12 @@ export default function ProfilePage() {
             }
             if (typeof dbUser.showClock === 'boolean') {
               setShowClock(dbUser.showClock);
+              localStorage.setItem(`${userKey}_show_clock`, String(dbUser.showClock));
               localStorage.setItem('ziabl_show_clock', String(dbUser.showClock));
             }
             if (typeof dbUser.showCbr === 'boolean') {
               setShowCbr(dbUser.showCbr);
+              localStorage.setItem(`${userKey}_show_cbr`, String(dbUser.showCbr));
               localStorage.setItem('ziabl_show_cbr', String(dbUser.showCbr));
             }
             if (typeof dbUser.twoFactorEnabled === 'boolean') {
@@ -653,7 +655,9 @@ export default function ProfilePage() {
       localStorage.setItem('ziabl_user_avatar', selectedAvatar);
       localStorage.setItem(`${userKey}_user_timezone`, selectedTimezone);
       localStorage.setItem('ziabl_user_timezone', selectedTimezone);
+      localStorage.setItem(`${userKey}_show_clock`, String(showClock));
       localStorage.setItem('ziabl_show_clock', String(showClock));
+      localStorage.setItem(`${userKey}_show_cbr`, String(showCbr));
       localStorage.setItem('ziabl_show_cbr', String(showCbr));
       window.dispatchEvent(new Event('storage'));
 

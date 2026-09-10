@@ -24,7 +24,7 @@ model User {
   locale        String    @default("ru")
   timezone      String    @default("Europe/Moscow")
   avatar        String?
-  showClock     Boolean   @default(true)
+  showClock     Boolean   @default(false)
   showCbr       Boolean   @default(true)
   twoFactorEnabled Boolean @default(false)
   createdAt     DateTime  @default(now())

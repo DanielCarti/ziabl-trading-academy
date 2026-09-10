@@ -48,23 +48,34 @@ export default function Header() {
 
       setDisplayEmail(masterEmail || session?.user?.email || null);
 
-      const savedAvatar = localStorage.getItem('ziabl_user_avatar');
+      const savedAvatar = (masterEmail ? localStorage.getItem(`ziabl_${masterEmail}_user_avatar`) : null) || localStorage.getItem('ziabl_user_avatar');
       if (savedAvatar) setUserAvatar(savedAvatar);
 
-      const savedTz = localStorage.getItem('ziabl_user_timezone');
+      const savedTz = (masterEmail ? localStorage.getItem(`ziabl_${masterEmail}_user_timezone`) : null) || localStorage.getItem('ziabl_user_timezone');
       if (savedTz) setUserTimezone(savedTz);
 
-      const savedClock = localStorage.getItem('ziabl_show_clock');
-      if (savedClock !== null) setShowClockWidget(savedClock === 'true');
+      // Account-specific or global widget preferences
+      const savedClock = masterEmail 
+        ? localStorage.getItem(`ziabl_${masterEmail}_show_clock`) ?? localStorage.getItem('ziabl_show_clock')
+        : localStorage.getItem('ziabl_show_clock');
+      // Default for non-logged-in users or when not explicitly set is FALSE (off)
+      setShowClockWidget(savedClock === 'true');
 
-      const savedCbr = localStorage.getItem('ziabl_show_cbr');
-      if (savedCbr !== null) setShowCbrWidget(savedCbr === 'true');
+      const savedCbr = masterEmail
+        ? localStorage.getItem(`ziabl_${masterEmail}_show_cbr`) ?? localStorage.getItem('ziabl_show_cbr')
+        : localStorage.getItem('ziabl_show_cbr');
+      // Default for CBR is TRUE (on) unless explicitly set to 'false'
+      setShowCbrWidget(savedCbr !== 'false');
     };
 
     updateLocalPreferences();
 
     // If logged in, also fetch fresh preferences from Neon DB
     if (session?.user?.email) {
+      const cleanEmail = session.user.email.toLowerCase().trim();
+      const masterEmail = (typeof window !== 'undefined' ? localStorage.getItem(`ziabl_linked_to_${cleanEmail}`) : null) || cleanEmail;
+      const userKey = `ziabl_${masterEmail}`;
+
       fetch('/api/user/preferences')
         .then((res) => (res.ok ? res.json() : null))
         .then((dbUser) => {
@@ -72,8 +83,14 @@ export default function Header() {
             if (dbUser.name) setDisplayName(dbUser.name);
             if (dbUser.avatar) setUserAvatar(dbUser.avatar);
             if (dbUser.timezone) setUserTimezone(dbUser.timezone);
-            if (typeof dbUser.showClock === 'boolean') setShowClockWidget(dbUser.showClock);
-            if (typeof dbUser.showCbr === 'boolean') setShowCbrWidget(dbUser.showCbr);
+            if (typeof dbUser.showClock === 'boolean') {
+              setShowClockWidget(dbUser.showClock);
+              if (typeof window !== 'undefined') localStorage.setItem(`${userKey}_show_clock`, String(dbUser.showClock));
+            }
+            if (typeof dbUser.showCbr === 'boolean') {
+              setShowCbrWidget(dbUser.showCbr);
+              if (typeof window !== 'undefined') localStorage.setItem(`${userKey}_show_cbr`, String(dbUser.showCbr));
+            }
           }
         })
         .catch(() => {});
