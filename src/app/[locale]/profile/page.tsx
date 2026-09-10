@@ -116,23 +116,13 @@ export default function ProfilePage() {
 
   const passwordStrength = getPasswordStrength(newPassword);
 
-  // Unified Account Merging: Helper to find or resolve Master Account
-  const getMasterUser = (currentEmail?: string | null) => {
-    if (typeof window === 'undefined') return null;
-    const cleanEmail = currentEmail?.toLowerCase().trim();
-    const storedMaster = localStorage.getItem('ziabl_master_account');
-    if (storedMaster) {
-      try {
-        const parsed = JSON.parse(storedMaster);
-        if (parsed?.email) return parsed;
-      } catch (e) {}
-    }
-    if (cleanEmail && cleanEmail !== 'anonymous') {
-      const defaultMaster = { email: cleanEmail, name: session?.user?.name || nameInput || 'Студент Ziabl' };
-      localStorage.setItem('ziabl_master_account', JSON.stringify(defaultMaster));
-      return defaultMaster;
-    }
-    return null;
+  // Account Linking & Identity System:
+  // Maps individual OAuth/Credentials emails to their unified master account cluster.
+  const getAccountOwnerKey = (email: string | null | undefined): string | null => {
+    if (!email || typeof window === 'undefined') return null;
+    const cleanEmail = email.toLowerCase().trim();
+    if (!cleanEmail || cleanEmail === 'anonymous') return null;
+    return localStorage.getItem(`ziabl_linked_to_${cleanEmail}`) || cleanEmail;
   };
 
   useEffect(() => {
@@ -140,7 +130,7 @@ export default function ProfilePage() {
       const currentEmail = session?.user?.email ? session.user.email.toLowerCase().trim() : null;
       const activeProvider = ((session?.user as any)?.provider || '').toLowerCase();
 
-      // Check if an OAuth account linking action was in progress
+      // Check if user was in the middle of explicit "Привязать аккаунт" (Account Linking) flow
       const pendingLinkingRaw = localStorage.getItem('ziabl_linking_pending');
       let pendingLinking: { masterEmail: string; provider: string } | null = null;
       if (pendingLinkingRaw) {
@@ -149,26 +139,28 @@ export default function ProfilePage() {
         } catch (e) {}
       }
 
-      // Determine master user email
-      let master = getMasterUser(currentEmail);
+      let effectiveOwnerEmail: string | null = null;
 
-      // If we were in the middle of linking a provider, link to master!
       if (pendingLinking?.masterEmail) {
-        master = {
-          email: pendingLinking.masterEmail,
-          name: localStorage.getItem(`ziabl_${pendingLinking.masterEmail}_user_name`) || session?.user?.name || 'Студент Ziabl',
-        };
-        localStorage.setItem('ziabl_master_account', JSON.stringify(master));
+        // We explicitly requested to LINK currentProvider to masterEmail!
+        effectiveOwnerEmail = pendingLinking.masterEmail;
+        // Map the newly authorized email to point to masterEmail
+        if (currentEmail) {
+          localStorage.setItem(`ziabl_linked_to_${currentEmail}`, effectiveOwnerEmail);
+        }
+      } else if (currentEmail) {
+        // Normal Sign In: check if this email was previously linked to an existing master account
+        effectiveOwnerEmail = getAccountOwnerKey(currentEmail);
       }
 
-      const masterEmail = master?.email || currentEmail || 'anonymous';
+      const masterEmail = effectiveOwnerEmail || currentEmail || 'anonymous';
       const userKey = `ziabl_${masterEmail}`;
 
-      // Load 2FA status for master account
+      // Load 2FA status for this account
       const stored2FA = localStorage.getItem(`${userKey}_2fa_enabled`);
       setTwoFactorEnabled(stored2FA === 'true');
 
-      // Load existing merged providers
+      // Load linked providers for this account
       let providers = { yandex: false, google: false, github: false };
       const storedProviders = localStorage.getItem(`${userKey}_linked_providers`);
       if (storedProviders) {
@@ -177,14 +169,14 @@ export default function ProfilePage() {
         } catch (e) {}
       }
 
-      // Load existing provider emails
+      // Load provider emails for this account
       let emails: Record<string, string> = {};
       const storedEmails = localStorage.getItem(`${userKey}_provider_emails`);
       if (storedEmails) {
         try { emails = JSON.parse(storedEmails); } catch (e) {}
       }
 
-      // If linking was in progress, merge the newly authorized provider
+      // Process explicit linking
       if (pendingLinking?.provider && (pendingLinking.provider === 'google' || pendingLinking.provider === 'github' || pendingLinking.provider === 'yandex')) {
         providers[pendingLinking.provider as 'google' | 'github' | 'yandex'] = true;
         if (currentEmail) {
@@ -193,26 +185,27 @@ export default function ProfilePage() {
         localStorage.removeItem('ziabl_linking_pending');
       }
 
-      // Also merge the currently active login provider into master's linked accounts
-      if (activeProvider === 'google') providers.google = true;
-      if (activeProvider === 'github') providers.github = true;
-      if (activeProvider === 'yandex') providers.yandex = true;
-      if (activeProvider && currentEmail) {
-        emails[activeProvider] = currentEmail;
+      // If this was a normal sign-in via OAuth, ensure this provider is marked connected for this user
+      if (activeProvider === 'google') {
+        providers.google = true;
+        if (currentEmail) emails.google = currentEmail;
+      }
+      if (activeProvider === 'github') {
+        providers.github = true;
+        if (currentEmail) emails.github = currentEmail;
+      }
+      if (activeProvider === 'yandex') {
+        providers.yandex = true;
+        if (currentEmail) emails.yandex = currentEmail;
       }
 
-      // If user originally registered via credentials with email, preserve
-      if (masterEmail.includes('@') && !emails.primary) {
-        emails.primary = masterEmail;
-      }
-
-      // Save merged providers and emails under master key
+      // Save updated state
       localStorage.setItem(`${userKey}_linked_providers`, JSON.stringify(providers));
       localStorage.setItem(`${userKey}_provider_emails`, JSON.stringify(emails));
       setLinkedAccounts(providers);
       setProviderEmails(emails);
 
-      // Load master preferences
+      // Load user preferences
       const storedAvatar = localStorage.getItem(`${userKey}_user_avatar`);
       if (storedAvatar) setSelectedAvatar(storedAvatar);
 
@@ -278,8 +271,7 @@ export default function ProfilePage() {
 
   const handleConnectProvider = (provider: 'google' | 'github' | 'yandex') => {
     if (typeof window !== 'undefined') {
-      const master = getMasterUser(session?.user?.email);
-      const masterEmail = master?.email || session?.user?.email || 'anonymous';
+      const masterEmail = getAccountOwnerKey(session?.user?.email) || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
       localStorage.setItem(
         'ziabl_linking_pending',
         JSON.stringify({
@@ -305,8 +297,7 @@ export default function ProfilePage() {
     setLinkedAccounts((prev) => {
       const next = { ...prev, [unlinkProvider]: false };
       if (typeof window !== 'undefined') {
-        const master = getMasterUser(session?.user?.email);
-        const masterEmail = master?.email || session?.user?.email || 'anonymous';
+        const masterEmail = getAccountOwnerKey(session?.user?.email) || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
         const userKey = `ziabl_${masterEmail}`;
         localStorage.setItem(`${userKey}_linked_providers`, JSON.stringify(next));
 
@@ -326,8 +317,7 @@ export default function ProfilePage() {
   };
 
   const handleToggle2FA = () => {
-    const master = getMasterUser(session?.user?.email);
-    const masterEmail = master?.email || session?.user?.email || 'anonymous';
+    const masterEmail = getAccountOwnerKey(session?.user?.email) || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
     const userKey = `ziabl_${masterEmail}`;
 
     if (twoFactorEnabled) {
@@ -350,8 +340,7 @@ export default function ProfilePage() {
     }
     setTwoFactorEnabled(true);
     if (typeof window !== 'undefined') {
-      const master = getMasterUser(session?.user?.email);
-      const masterEmail = master?.email || session?.user?.email || 'anonymous';
+      const masterEmail = getAccountOwnerKey(session?.user?.email) || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
       const userKey = `ziabl_${masterEmail}`;
       localStorage.setItem(`${userKey}_2fa_enabled`, 'true');
     }
@@ -383,8 +372,7 @@ export default function ProfilePage() {
   }, [status, router, locale]);
 
   useEffect(() => {
-    const master = getMasterUser(session?.user?.email);
-    const masterEmail = master?.email || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
+    const masterEmail = getAccountOwnerKey(session?.user?.email) || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
     const localName = typeof window !== 'undefined' ? localStorage.getItem(`ziabl_${masterEmail}_user_name`) || localStorage.getItem('ziabl_user_name') : null;
     if (localName) {
       setNameInput(localName);
@@ -475,8 +463,7 @@ export default function ProfilePage() {
     if (!nameInput.trim()) return;
 
     if (typeof window !== 'undefined') {
-      const master = getMasterUser(session?.user?.email);
-      const masterEmail = master?.email || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
+      const masterEmail = getAccountOwnerKey(session?.user?.email) || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
       const userKey = `ziabl_${masterEmail}`;
 
       localStorage.setItem(`${userKey}_user_name`, nameInput.trim());
@@ -519,8 +506,7 @@ export default function ProfilePage() {
   const role = (session.user as any).role || 'USER';
   const isAdmin = role === 'ADMIN';
   const activeProvider = ((session?.user as any)?.provider || '').toLowerCase();
-  const master = getMasterUser(session?.user?.email);
-  const primaryDisplayEmail = master?.email || session.user.email || '';
+  const primaryDisplayEmail = getAccountOwnerKey(session?.user?.email) || session.user.email || '';
 
   // Find recommended / next lessons
   const allLessons = mockModules.flatMap((m) => m.lessons);
@@ -597,7 +583,14 @@ export default function ProfilePage() {
                 </Link>
               )}
               <button
-                onClick={() => signOut({ callbackUrl: `/${locale}` })}
+                onClick={() => {
+                  if (typeof window !== 'undefined') {
+                    localStorage.removeItem('ziabl_master_account');
+                    localStorage.removeItem('ziabl_user_name');
+                    localStorage.removeItem('ziabl_linking_pending');
+                  }
+                  signOut({ callbackUrl: `/${locale}` });
+                }}
                 className="btn-ghost !text-danger hover:bg-danger/10 text-xs font-medium gap-1.5"
               >
                 <LogOut className="w-4 h-4" />

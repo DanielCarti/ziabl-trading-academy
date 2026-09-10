@@ -36,17 +36,13 @@ export default function Header() {
   useEffect(() => {
     const updateLocalPreferences = () => {
       let masterEmail: string | null = null;
-      let masterName: string | null = null;
-      const storedMaster = localStorage.getItem('ziabl_master_account');
-      if (storedMaster) {
-        try {
-          const parsed = JSON.parse(storedMaster);
-          if (parsed?.email) masterEmail = parsed.email;
-          if (parsed?.name) masterName = parsed.name;
-        } catch (e) {}
+      if (typeof window !== 'undefined' && session?.user?.email) {
+        const cleanEmail = session.user.email.toLowerCase().trim();
+        masterEmail = localStorage.getItem(`ziabl_linked_to_${cleanEmail}`) || cleanEmail;
       }
 
-      const savedName = localStorage.getItem('ziabl_user_name') || masterName;
+      const userSpecificName = masterEmail ? localStorage.getItem(`ziabl_${masterEmail}_user_name`) : null;
+      const savedName = userSpecificName || localStorage.getItem('ziabl_user_name');
       if (savedName) setDisplayName(savedName);
       else if (session?.user?.name) setDisplayName(session.user.name);
 
@@ -320,6 +316,11 @@ export default function Header() {
                       <button
                         onClick={() => {
                           setProfileDropdown(false);
+                          if (typeof window !== 'undefined') {
+                            localStorage.removeItem('ziabl_master_account');
+                            localStorage.removeItem('ziabl_user_name');
+                            localStorage.removeItem('ziabl_linking_pending');
+                          }
                           signOut({ callbackUrl: `/${locale}` });
                         }}
                         className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-medium text-danger hover:bg-danger/10 transition-colors w-full text-left"
@@ -425,7 +426,14 @@ export default function Header() {
                   <span>{t('profile')}</span>
                 </Link>
                 <button
-                  onClick={() => signOut({ callbackUrl: `/${locale}` })}
+                  onClick={() => {
+                    if (typeof window !== 'undefined') {
+                      localStorage.removeItem('ziabl_master_account');
+                      localStorage.removeItem('ziabl_user_name');
+                      localStorage.removeItem('ziabl_linking_pending');
+                    }
+                    signOut({ callbackUrl: `/${locale}` });
+                  }}
                   className="flex items-center gap-3 px-4 py-3 rounded-lg text-sm text-danger w-full hover:bg-surface-light text-left"
                 >
                   <LogOut className="w-5 h-5" />
