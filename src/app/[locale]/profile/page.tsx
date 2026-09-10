@@ -176,12 +176,25 @@ export default function ProfilePage() {
         try { emails = JSON.parse(storedEmails); } catch (e) {}
       }
 
-      // Process explicit linking
+      // Process explicit linking and call backend API to merge accounts in DB
       if (pendingLinking?.provider && (pendingLinking.provider === 'google' || pendingLinking.provider === 'github' || pendingLinking.provider === 'yandex')) {
         providers[pendingLinking.provider as 'google' | 'github' | 'yandex'] = true;
         if (currentEmail) {
           emails[pendingLinking.provider] = currentEmail;
         }
+
+        // Call backend API to link accounts in PostgreSQL
+        if (pendingLinking.masterEmail && currentEmail && pendingLinking.masterEmail !== currentEmail) {
+          fetch('/api/auth/link', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              targetEmail: currentEmail,
+              provider: pendingLinking.provider,
+            }),
+          }).catch((e) => console.error('Error linking account in DB:', e));
+        }
+
         localStorage.removeItem('ziabl_linking_pending');
       }
 
@@ -205,18 +218,65 @@ export default function ProfilePage() {
       setLinkedAccounts(providers);
       setProviderEmails(emails);
 
-      // Load user preferences
-      const storedAvatar = localStorage.getItem(`${userKey}_user_avatar`);
-      if (storedAvatar) setSelectedAvatar(storedAvatar);
+      // Fetch user profile from DB to sync preferences (theme, avatar, timezone, etc.)
+      fetch('/api/user/preferences')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((dbUser) => {
+          if (dbUser) {
+            if (dbUser.name) {
+              setNameInput(dbUser.name);
+              localStorage.setItem(`${userKey}_user_name`, dbUser.name);
+            }
+            if (dbUser.avatar) {
+              setSelectedAvatar(dbUser.avatar);
+              localStorage.setItem(`${userKey}_user_avatar`, dbUser.avatar);
+            }
+            if (dbUser.timezone) {
+              setSelectedTimezone(dbUser.timezone);
+              localStorage.setItem(`${userKey}_user_timezone`, dbUser.timezone);
+            }
+            if (typeof dbUser.showClock === 'boolean') {
+              setShowClock(dbUser.showClock);
+              localStorage.setItem('ziabl_show_clock', String(dbUser.showClock));
+            }
+            if (typeof dbUser.showCbr === 'boolean') {
+              setShowCbr(dbUser.showCbr);
+              localStorage.setItem('ziabl_show_cbr', String(dbUser.showCbr));
+            }
+            if (typeof dbUser.twoFactorEnabled === 'boolean') {
+              setTwoFactorEnabled(dbUser.twoFactorEnabled);
+              localStorage.setItem(`${userKey}_2fa_enabled`, String(dbUser.twoFactorEnabled));
+            }
 
-      const storedTz = localStorage.getItem(`${userKey}_user_timezone`);
-      if (storedTz) setSelectedTimezone(storedTz);
+            // Sync connected accounts from DB if present
+            if (Array.isArray(dbUser.accounts)) {
+              setLinkedAccounts((prev) => {
+                const next = { ...prev };
+                dbUser.accounts.forEach((acc: any) => {
+                  if (acc.provider === 'google') next.google = true;
+                  if (acc.provider === 'github') next.github = true;
+                  if (acc.provider === 'yandex') next.yandex = true;
+                });
+                localStorage.setItem(`${userKey}_linked_providers`, JSON.stringify(next));
+                return next;
+              });
+            }
+          }
+        })
+        .catch(() => {
+          // Fallback to local storage
+          const storedAvatar = localStorage.getItem(`${userKey}_user_avatar`);
+          if (storedAvatar) setSelectedAvatar(storedAvatar);
 
-      const storedClock = localStorage.getItem('ziabl_show_clock');
-      if (storedClock !== null) setShowClock(storedClock === 'true');
+          const storedTz = localStorage.getItem(`${userKey}_user_timezone`);
+          if (storedTz) setSelectedTimezone(storedTz);
 
-      const storedCbr = localStorage.getItem('ziabl_show_cbr');
-      if (storedCbr !== null) setShowCbr(storedCbr === 'true');
+          const storedClock = localStorage.getItem('ziabl_show_clock');
+          if (storedClock !== null) setShowClock(storedClock === 'true');
+
+          const storedCbr = localStorage.getItem('ziabl_show_cbr');
+          if (storedCbr !== null) setShowCbr(storedCbr === 'true');
+        });
     }
   }, [session]);
 
@@ -475,6 +535,19 @@ export default function ProfilePage() {
       localStorage.setItem('ziabl_show_clock', String(showClock));
       localStorage.setItem('ziabl_show_cbr', String(showCbr));
       window.dispatchEvent(new Event('storage'));
+
+      // Persist settings directly into PostgreSQL
+      fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: nameInput.trim(),
+          avatar: selectedAvatar,
+          timezone: selectedTimezone,
+          showClock,
+          showCbr,
+        }),
+      }).catch((e) => console.error('Error saving preferences to DB:', e));
     }
 
     if (update) {
@@ -487,6 +560,13 @@ export default function ProfilePage() {
 
   const switchLocale = (newLocale: string) => {
     if (newLocale === locale) return;
+    if (typeof window !== 'undefined') {
+      fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: newLocale }),
+      }).catch(() => {});
+    }
     startNavigationProgress();
     router.push(`/${newLocale}/profile`);
   };

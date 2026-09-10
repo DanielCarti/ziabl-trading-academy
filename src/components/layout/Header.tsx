@@ -116,6 +116,13 @@ export default function Header() {
 
   const otherLocale = locale === 'ru' ? 'en' : 'ru';
   const switchLocale = () => {
+    if (session?.user && typeof window !== 'undefined') {
+      fetch('/api/user/preferences', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ locale: otherLocale }),
+      }).catch(() => {});
+    }
     startNavigationProgress();
     const newPath = pathname.replace(`/${locale}`, `/${otherLocale}`);
     router.push(newPath);

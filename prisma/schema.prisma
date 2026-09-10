@@ -20,6 +20,13 @@ model User {
   passwordHash  String?
   image         String?
   role          Role      @default(USER)
+  theme         String    @default("dark")
+  locale        String    @default("ru")
+  timezone      String    @default("Europe/Moscow")
+  avatar        String?
+  showClock     Boolean   @default(true)
+  showCbr       Boolean   @default(true)
+  twoFactorEnabled Boolean @default(false)
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
