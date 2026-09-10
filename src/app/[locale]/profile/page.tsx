@@ -373,7 +373,7 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const masterEmail = getAccountOwnerKey(session?.user?.email) || (session?.user?.email ? session.user.email.toLowerCase().trim() : 'anonymous');
-    const localName = typeof window !== 'undefined' ? localStorage.getItem(`ziabl_${masterEmail}_user_name`) || localStorage.getItem('ziabl_user_name') : null;
+    const localName = typeof window !== 'undefined' ? localStorage.getItem(`ziabl_${masterEmail}_user_name`) : null;
     if (localName) {
       setNameInput(localName);
     } else if (session?.user?.name) {

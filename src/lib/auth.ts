@@ -10,8 +10,8 @@ import { prisma } from '@/lib/prisma';
 const adminEmail = (process.env.ADMIN_EMAIL || 'admin@ziabl.ru').toLowerCase();
 
 export const authOptions: AuthOptions = {
-  // Pure JWT strategy allows social logins (Yandex, Google, GitHub) to work instantly
-  // even without an active local PostgreSQL server
+  adapter: PrismaAdapter(prisma) as any,
+  // Using jwt strategy with adapter allows both JWT session fast-checks and Postgres persistence
   session: {
     strategy: 'jwt',
   },
