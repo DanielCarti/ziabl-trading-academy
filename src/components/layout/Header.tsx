@@ -62,6 +62,23 @@ export default function Header() {
     };
 
     updateLocalPreferences();
+
+    // If logged in, also fetch fresh preferences from Neon DB
+    if (session?.user?.email) {
+      fetch('/api/user/preferences')
+        .then((res) => (res.ok ? res.json() : null))
+        .then((dbUser) => {
+          if (dbUser) {
+            if (dbUser.name) setDisplayName(dbUser.name);
+            if (dbUser.avatar) setUserAvatar(dbUser.avatar);
+            if (dbUser.timezone) setUserTimezone(dbUser.timezone);
+            if (typeof dbUser.showClock === 'boolean') setShowClockWidget(dbUser.showClock);
+            if (typeof dbUser.showCbr === 'boolean') setShowCbrWidget(dbUser.showCbr);
+          }
+        })
+        .catch(() => {});
+    }
+
     window.addEventListener('storage', updateLocalPreferences);
     return () => window.removeEventListener('storage', updateLocalPreferences);
   }, [session]);

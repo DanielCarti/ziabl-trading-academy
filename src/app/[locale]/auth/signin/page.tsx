@@ -36,7 +36,21 @@ export default function SignInPage() {
       setError(t('error'));
       setLoading(false);
     } else {
-      router.push(searchParams.get('callbackUrl') || `/${locale}/courses`);
+      // Determine if user has a preferred locale in DB, else use current
+      try {
+        const prefRes = await fetch('/api/user/preferences');
+        if (prefRes.ok) {
+          const prefData = await prefRes.json();
+          if (prefData?.locale && (prefData.locale === 'ru' || prefData.locale === 'en')) {
+            const target = searchParams.get('callbackUrl') || `/${prefData.locale}/courses`;
+            window.location.href = target.replace(/^\/(ru|en)/, `/${prefData.locale}`);
+            return;
+          }
+        }
+      } catch (e) {}
+
+      const destination = searchParams.get('callbackUrl') || `/${locale}/courses`;
+      window.location.href = destination;
     }
   };
 

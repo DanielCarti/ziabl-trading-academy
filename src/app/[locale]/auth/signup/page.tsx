@@ -45,7 +45,7 @@ export default function SignUpPage() {
 
       // Auto sign in
       await signIn('credentials', { email, password, redirect: false });
-      router.push(`/${locale}/courses`);
+      window.location.href = `/${locale}/courses`;
     } catch (err: any) {
       setError(err.message || t('registerError'));
       setLoading(false);
