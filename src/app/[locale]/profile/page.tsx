@@ -248,7 +248,7 @@ export default function ProfilePage() {
               localStorage.setItem(`${userKey}_2fa_enabled`, String(dbUser.twoFactorEnabled));
             }
 
-            // Sync connected accounts from DB if present
+            // Sync connected accounts and their real emails from DB if present
             if (Array.isArray(dbUser.accounts)) {
               const freshProviders = {
                 google: dbUser.accounts.some((a: any) => a.provider === 'google') || activeProvider === 'google',
@@ -257,6 +257,14 @@ export default function ProfilePage() {
               };
               setLinkedAccounts(freshProviders);
               localStorage.setItem(`${userKey}_linked_providers`, JSON.stringify(freshProviders));
+
+              if (dbUser.providerEmails && typeof dbUser.providerEmails === 'object') {
+                setProviderEmails((prev) => {
+                  const merged = { ...prev, ...dbUser.providerEmails };
+                  localStorage.setItem(`${userKey}_provider_emails`, JSON.stringify(merged));
+                  return merged;
+                });
+              }
             }
           }
         })

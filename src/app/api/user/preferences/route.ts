@@ -29,6 +29,7 @@ export async function GET(req: NextRequest) {
           select: {
             provider: true,
             providerAccountId: true,
+            id_token: true,
           },
         },
       },
@@ -38,7 +39,24 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
-    return NextResponse.json(user);
+    const providerEmails: Record<string, string> = {};
+    if (user.accounts && Array.isArray(user.accounts)) {
+      for (const acc of user.accounts) {
+        if (acc.id_token) {
+          try {
+            const parts = acc.id_token.split('.');
+            if (parts.length >= 2) {
+              const payload = JSON.parse(Buffer.from(parts[1], 'base64').toString('utf8'));
+              if (payload.email) {
+                providerEmails[acc.provider] = payload.email;
+              }
+            }
+          } catch (e) {}
+        }
+      }
+    }
+
+    return NextResponse.json({ ...user, providerEmails });
   } catch (error) {
     console.error('Error fetching user preferences:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
