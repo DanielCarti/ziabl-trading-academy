@@ -75,14 +75,6 @@ export const authOptions: AuthOptions = {
               role: 'ADMIN',
             };
           }
-          if (credentials.password === 'demo123') {
-            return {
-              id: 'demo-local',
-              email: email,
-              name: 'Студент Ziabl',
-              role: 'USER',
-            };
-          }
           throw new Error('Invalid email or password');
         }
 

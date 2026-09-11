@@ -155,33 +155,6 @@ export default function SignInPage() {
             </div>
           </div>
 
-          {/* Quick Demo Login */}
-          <div className="mt-5 p-3 rounded-lg bg-surface-light border border-surface-border text-xs text-center space-y-2">
-            <span className="text-text-muted block">Быстрый тестовый вход (локально):</span>
-            <div className="flex gap-2 justify-center">
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('admin@ziabl.ru');
-                  setPassword('admin123');
-                }}
-                className="px-2.5 py-1 rounded bg-accent/10 border border-accent/30 text-accent hover:bg-accent/20 transition-colors text-xs font-mono"
-              >
-                Администратор
-              </button>
-              <button
-                type="button"
-                onClick={() => {
-                  setEmail('student@ziabl.ru');
-                  setPassword('demo123');
-                }}
-                className="px-2.5 py-1 rounded bg-surface border border-surface-border text-text-secondary hover:text-text-primary transition-colors text-xs font-mono"
-              >
-                Студент
-              </button>
-            </div>
-          </div>
-
           <div className="mt-6 text-center text-sm text-text-secondary">
             {t('noAccount')}{' '}
             <Link href={`/${locale}/auth/signup`} className="text-accent hover:text-accent-light transition-colors">
