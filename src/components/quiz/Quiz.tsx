@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useTranslations } from 'next-intl';
+import { useSession } from 'next-auth/react';
+import Link from 'next/link';
 import { getLocalizedField } from '@/lib/utils';
 import { cn } from '@/lib/utils';
-import { CheckCircle2, XCircle, RotateCcw, PartyPopper, AlertCircle } from 'lucide-react';
+import { CheckCircle2, XCircle, RotateCcw, PartyPopper, AlertCircle, Info } from 'lucide-react';
 
 interface QuizQuestion {
   id: string;
@@ -169,12 +171,44 @@ export default function Quiz({
   const getQuestion = (q: QuizQuestion) => (locale === 'ru' ? q.questionRu : q.questionEn);
   const getExplanation = (q: QuizQuestion) => (locale === 'ru' ? q.explanationRu : q.explanationEn);
 
+  const { data: session } = useSession();
+  const isGuest = !session?.user;
+
   return (
     <div>
-      <h3 className="text-xl font-bold text-text-primary mb-6 flex items-center gap-2">
+      <h3 className="text-xl font-bold text-text-primary mb-4 flex items-center gap-2">
         <AlertCircle className="w-5 h-5 text-accent" />
         {t('title')}
       </h3>
+
+      {/* Guest Mode Notice */}
+      {isGuest && (
+        <div className="mb-6 p-4 rounded-xl bg-surface-light border border-surface-border/80 flex items-start gap-3 text-xs leading-relaxed text-text-secondary">
+          <Info className="w-4 h-4 text-accent shrink-0 mt-0.5" />
+          <div>
+            <span className="font-semibold text-text-primary">
+              {locale === 'ru' ? 'Гостевой режим:' : 'Guest mode:'}{' '}
+            </span>
+            {locale === 'ru' ? (
+              <>
+                Вы проходите тест без авторизации. Ваши ответы сохраняются только локально в этом браузере и не передаются на сервер. Чтобы синхронизировать прогресс между устройствами,{' '}
+                <Link href={`/${locale}/auth/signin`} className="text-accent hover:underline font-semibold">
+                  войдите в аккаунт
+                </Link>
+                .
+              </>
+            ) : (
+              <>
+                You are taking this quiz in guest mode. Answers are stored locally in your browser. To sync your progress,{' '}
+                <Link href={`/${locale}/auth/signin`} className="text-accent hover:underline font-semibold">
+                  sign in
+                </Link>
+                .
+              </>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Results Banner */}
       {results && (
