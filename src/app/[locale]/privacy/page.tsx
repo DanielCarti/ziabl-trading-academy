@@ -56,22 +56,22 @@ export default function PrivacyPolicyPage() {
           <p>
             {isRu ? (
               <>
-                1.1. Настоящая Политика обработки персональных данных составлена в соответствии с требованиями Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных» и определяет порядок сбора, обработки, хранения и защиты персональных данных пользователей веб-платформы Ziabl Trade Academy (далее — «Платформа», «Оператор»).
+                1.1. Настоящая Политика обработки персональных данных составлена в соответствии со ст. 1 и ст. 18.1 Федерального закона от 27.07.2006 № 152-ФЗ «О персональных данных». Оператором платформы является физическое лицо — автор некоммерческого исследовательского пет-проекта «Ziabl Trade Academy» (далее — «Платформа»).
               </>
             ) : (
               <>
-                1.1. This Privacy Policy governs the collection, storage, and processing of personal data on the Ziabl Trade Academy platform in accordance with applicable personal data protection laws.
+                1.1. This Privacy Policy outlines data handling practices for the non-commercial private research project Ziabl Trade Academy, maintained by an individual researcher.
               </>
             )}
           </p>
           <p>
             {isRu ? (
               <>
-                1.2. Использование сервисов Платформы, регистрация аккаунта или продолжение навигации означает полное и безоговорочное согласие Пользователя с настоящей Политикой и условиями обработки его данных.
+                1.2. Платформа функционирует в закрытом режиме ограниченного круга лиц (семья, близкие, участники закрытого тестирования по инвайт-кодам). Платформа не оказывает публичных или платных услуг неограниченному кругу лиц и не осуществляет сбор данных в коммерческих целях. Регистрация и использование сервиса осуществляются исключительно с добровольного согласия пользователя.
               </>
             ) : (
               <>
-                1.2. Using the Platform or registering an account constitutes full acceptance of this Privacy Policy and consent to data processing.
+                1.2. The Platform operates as a closed private beta for an invited circle of associates. No public or commercial services are provided.
               </>
             )}
           </p>

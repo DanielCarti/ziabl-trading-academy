@@ -20,7 +20,12 @@ export default function CookieBanner() {
   }, []);
 
   const handleAccept = () => {
-    localStorage.setItem('ziabl_cookie_consent', 'true');
+    localStorage.setItem('ziabl_cookie_consent', 'accepted');
+    setShowBanner(false);
+  };
+
+  const handleReject = () => {
+    localStorage.setItem('ziabl_cookie_consent', 'essential_only');
     setShowBanner(false);
   };
 
@@ -74,18 +79,20 @@ export default function CookieBanner() {
           </button>
         </div>
 
-        <div className="mt-4 flex items-center justify-end gap-2 pt-3 border-t border-surface-border">
-          <Link
-            href={`/${locale}/privacy`}
-            className="px-3 py-1.5 rounded-lg text-xs text-text-secondary hover:text-text-primary hover:bg-surface-light transition-colors"
-          >
-            {isRu ? 'Подробнее' : 'Learn more'}
-          </Link>
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-2 pt-3 border-t border-surface-border">
           <button
+            type="button"
+            onClick={handleReject}
+            className="px-3 py-1.5 rounded-lg text-xs text-text-muted hover:text-danger hover:bg-danger/10 border border-surface-border/60 transition-colors"
+          >
+            {isRu ? 'Только технические (Отклонить)' : 'Essential only (Decline)'}
+          </button>
+          <button
+            type="button"
             onClick={handleAccept}
             className="btn-primary !py-1.5 !px-4 text-xs font-semibold shadow-sm"
           >
-            {isRu ? 'Принять и продолжить' : 'Accept & Proceed'}
+            {isRu ? 'Принять все' : 'Accept All'}
           </button>
         </div>
       </div>
