@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import Link from 'next/link';
 import AuthProvider from '@/components/providers/AuthProvider';
-import { LayoutDashboard, BookOpen, GraduationCap, BookMarked, HelpCircle, TrendingUp } from 'lucide-react';
+import { LayoutDashboard, BookOpen, GraduationCap, BookMarked, HelpCircle, TrendingUp, ShieldCheck } from 'lucide-react';
 import ThemeToggle from '@/components/layout/ThemeToggle';
 import NavigationProgress from '@/components/layout/NavigationProgress';
 
@@ -15,6 +15,7 @@ const adminLinks = [
   { href: '/admin/lessons', label: 'Уроки', icon: GraduationCap },
   { href: '/admin/glossary', label: 'Глоссарий', icon: BookMarked },
   { href: '/admin/quizzes', label: 'Квизы', icon: HelpCircle },
+  { href: '/admin/access', label: 'Доступ и Инвайты', icon: ShieldCheck },
 ];
 
 function AdminContent({ children }: { children: React.ReactNode }) {

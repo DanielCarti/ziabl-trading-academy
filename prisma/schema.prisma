@@ -194,3 +194,22 @@ model GlossaryTerm {
   @@unique([termRu])
   @@unique([termEn])
 }
+
+model WhitelistEmail {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  note      String?
+  createdAt DateTime @default(now())
+}
+
+model InviteCode {
+  id        String   @id @default(cuid())
+  code      String   @unique
+  note      String?
+  maxUses   Int      @default(1)
+  usedCount Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+

@@ -122,15 +122,26 @@ export const authOptions: AuthOptions = {
         return true;
       }
 
-      // New registration check: whitelist
-      const allowedEmails = (process.env.ALLOWED_EMAILS || '')
+      // New registration check: DB Whitelist + .env Whitelist
+      const allowedEnvEmails = (process.env.ALLOWED_EMAILS || '')
         .toLowerCase()
         .split(',')
         .map(e => e.trim())
         .filter(Boolean);
 
-      if (allowedEmails.includes(email)) {
+      if (allowedEnvEmails.includes(email)) {
         return true;
+      }
+
+      try {
+        const whitelistedDb = await prisma.whitelistEmail.findUnique({
+          where: { email },
+        });
+        if (whitelistedDb) {
+          return true;
+        }
+      } catch (err) {
+        console.error('Whitelist check error:', err);
       }
 
       // If neither existing nor in whitelist, block new OAuth signups

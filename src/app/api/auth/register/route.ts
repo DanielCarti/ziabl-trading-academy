@@ -12,18 +12,43 @@ export async function POST(req: NextRequest) {
 
     const normalizedEmail = email.toLowerCase();
 
-    // Check whitelist and invite code
-    const systemInviteCode = process.env.REGISTRATION_INVITE_CODE || 'ZIABL2026';
-    const allowedEmails = (process.env.ALLOWED_EMAILS || '')
+    // Check whitelist (env + DB)
+    const systemInviteCode = (process.env.REGISTRATION_INVITE_CODE || 'ZIABL2026').trim().toUpperCase();
+    const allowedEnvEmails = (process.env.ALLOWED_EMAILS || '')
       .toLowerCase()
       .split(',')
       .map(e => e.trim())
       .filter(Boolean);
 
-    const isWhitelisted = allowedEmails.includes(normalizedEmail);
-    const isValidCode = inviteCode && inviteCode.trim().toUpperCase() === systemInviteCode.trim().toUpperCase();
+    let isAllowed = allowedEnvEmails.includes(normalizedEmail);
 
-    if (!isWhitelisted && !isValidCode) {
+    if (!isAllowed) {
+      const dbWhitelist = await prisma.whitelistEmail.findUnique({
+        where: { email: normalizedEmail },
+      });
+      if (dbWhitelist) {
+        isAllowed = true;
+      }
+    }
+
+    let matchedDbInvite: any = null;
+    const formattedCode = inviteCode ? inviteCode.trim().toUpperCase() : '';
+
+    if (!isAllowed && formattedCode) {
+      if (formattedCode === systemInviteCode) {
+        isAllowed = true;
+      } else {
+        const dbInvite = await prisma.inviteCode.findUnique({
+          where: { code: formattedCode },
+        });
+        if (dbInvite && dbInvite.isActive && dbInvite.usedCount < dbInvite.maxUses) {
+          isAllowed = true;
+          matchedDbInvite = dbInvite;
+        }
+      }
+    }
+
+    if (!isAllowed) {
       return NextResponse.json(
         { error: 'Доступ ограничен. Для регистрации требуется действующий инвайт-код закрытого тестирования.' },
         { status: 403 }
@@ -40,6 +65,17 @@ export async function POST(req: NextRequest) {
       data: { name, email: normalizedEmail, passwordHash, role: 'USER' },
       select: { id: true, name: true, email: true, role: true },
     });
+
+    if (matchedDbInvite) {
+      try {
+        await prisma.inviteCode.update({
+          where: { id: matchedDbInvite.id },
+          data: { usedCount: { increment: 1 } },
+        });
+      } catch (err) {
+        console.error('Failed to increment invite count:', err);
+      }
+    }
 
     return NextResponse.json(user, { status: 201 });
   } catch (error) {
