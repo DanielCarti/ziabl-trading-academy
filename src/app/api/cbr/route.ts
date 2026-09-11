@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 export const dynamic = 'force-dynamic';
 
 // Schedule of Bank of Russia Board of Directors key rate decision meetings
-// (Bank of Russia holds exactly 8 scheduled meetings per year, ~every 6-7 weeks on Fridays at 13:30 MSK)
+// (Bank of Russia holds exactly 8 scheduled meetings per year on Fridays at 13:30 MSK: Feb, Mar, Apr, Jun, Jul, Sep, Oct, Dec)
 const CBR_RATE_SCHEDULE_MEETINGS = [
   '2024-02-16',
   '2024-03-22',
@@ -21,6 +21,22 @@ const CBR_RATE_SCHEDULE_MEETINGS = [
   '2025-09-12',
   '2025-10-24',
   '2025-12-19',
+  '2026-02-13',
+  '2026-03-20',
+  '2026-04-24',
+  '2026-06-05',
+  '2026-07-24',
+  '2026-09-11',
+  '2026-10-23',
+  '2026-12-18',
+  '2027-02-12',
+  '2027-03-19',
+  '2027-04-23',
+  '2027-06-11',
+  '2027-07-23',
+  '2027-09-10',
+  '2027-10-22',
+  '2027-12-17',
 ];
 
 // In-memory cache for process lifecycle
@@ -32,8 +48,8 @@ let memoryCache: {
   source: string;
 } = {
   rate: 14.0,
-  date: '2026-09-10',
-  nextMeeting: '2025-10-24',
+  date: new Date().toISOString().split('T')[0],
+  nextMeeting: '2026-10-23',
   lastCheckedAt: 0,
   source: 'cbr.ru',
 };
@@ -43,8 +59,14 @@ const CACHE_TTL_MS = 12 * 60 * 60 * 1000;
 
 function getNextScheduledMeeting(): string {
   const today = new Date().toISOString().split('T')[0];
-  const next = CBR_RATE_SCHEDULE_MEETINGS.find((m) => m >= today);
-  return next || '2025-10-24';
+  // Strictly in the future
+  const next = CBR_RATE_SCHEDULE_MEETINGS.find((m) => m > today);
+  if (next) return next;
+
+  // If beyond 2027, calculate dynamically ~6 weeks ahead
+  const fallback = new Date();
+  fallback.setDate(fallback.getDate() + 42);
+  return fallback.toISOString().split('T')[0];
 }
 
 async function fetchLiveCbrRate(): Promise<{ rate: number; date: string; source: string } | null> {
@@ -109,6 +131,42 @@ async function fetchLiveCbrRate(): Promise<{ rate: number; date: string; source:
     }
   } catch (err) {
     // Fallback
+  }
+
+  // Tertiary Source: Official CBR KeyRate historical table (hd_base)
+  try {
+    const tableController = new AbortController();
+    const tableTimeout = setTimeout(() => tableController.abort(), 4000);
+    const tableRes = await fetch(
+      'https://www.cbr.ru/hd_base/KeyRate/?UniDbQuery.Posted=True&UniDbQuery.From=01.01.2024&UniDbQuery.To=31.12.2027',
+      {
+        headers: {
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko)',
+        },
+        signal: tableController.signal,
+      }
+    );
+    clearTimeout(tableTimeout);
+
+    if (tableRes.ok) {
+      const html = await tableRes.text();
+      const match = html.match(/<td>(\d{2})\.(\d{2})\.(\d{4})<\/td>\s*<td>(\d+[\.,]\d+)<\/td>/i);
+      if (match) {
+        const day = match[1];
+        const month = match[2];
+        const year = match[3];
+        const parsedRate = parseFloat(match[4].replace(',', '.'));
+        if (!isNaN(parsedRate) && parsedRate > 0) {
+          return {
+            rate: parsedRate,
+            date: `${year}-${month}-${day}`,
+            source: 'cbr.ru (База данных)',
+          };
+        }
+      }
+    }
+  } catch (err) {
+    // Ignore and fallback
   }
 
   return null;
