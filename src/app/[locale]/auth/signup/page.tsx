@@ -15,6 +15,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [inviteCode, setInviteCode] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState('');
@@ -35,7 +36,7 @@ export default function SignUpPage() {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, email, password }),
+        body: JSON.stringify({ name, email, password, inviteCode }),
       });
 
       if (!res.ok) {
@@ -145,6 +146,24 @@ export default function SignUpPage() {
                   {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                 </button>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm text-text-secondary mb-1">
+                Инвайт-код (код приглашения) <span className="text-accent">*</span>
+              </label>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={inviteCode}
+                  onChange={e => setInviteCode(e.target.value)}
+                  className="input-field uppercase tracking-wider font-mono text-sm"
+                  placeholder="ZIABL-..."
+                />
+              </div>
+              <p className="text-[11px] text-text-muted mt-1">
+                Платформа находится в закрытом режиме. Введите инвайт от администратора или оставьте пустым, если ваш email в whitelist.
+              </p>
             </div>
 
             <button type="submit" disabled={loading} className="btn-primary w-full">

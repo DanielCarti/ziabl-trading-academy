@@ -98,7 +98,11 @@ export const authOptions: AuthOptions = {
   ],
   callbacks: {
     async signIn({ user, account }) {
-      if (user?.email && user.email.toLowerCase() === adminEmail) {
+      if (!user?.email) return false;
+      const email = user.email.toLowerCase();
+
+      // Check if admin
+      if (email === adminEmail) {
         (user as any).role = 'ADMIN';
         try {
           await prisma.user.updateMany({
@@ -106,8 +110,32 @@ export const authOptions: AuthOptions = {
             data: { role: 'ADMIN' },
           });
         } catch (ignore) {}
+        return true;
       }
-      return true;
+
+      // Check if user already exists in DB
+      const existingUser = await prisma.user.findUnique({
+        where: { email },
+        select: { id: true },
+      });
+      if (existingUser) {
+        return true;
+      }
+
+      // New registration check: whitelist
+      const allowedEmails = (process.env.ALLOWED_EMAILS || '')
+        .toLowerCase()
+        .split(',')
+        .map(e => e.trim())
+        .filter(Boolean);
+
+      if (allowedEmails.includes(email)) {
+        return true;
+      }
+
+      // If neither existing nor in whitelist, block new OAuth signups
+      // Redirect with access denied reason
+      return '/ru/auth/signin?error=AccessDeniedPrivate';
     },
     async jwt({ token, user, account, trigger, session }) {
       if (user) {

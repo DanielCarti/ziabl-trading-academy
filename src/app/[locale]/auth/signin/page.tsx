@@ -16,9 +16,17 @@ export default function SignInPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const urlError = searchParams.get('error');
-  const [error, setError] = useState(
-    urlError ? (urlError === 'Callback' ? 'Ошибка входа через внешнюю службу' : urlError) : ''
-  );
+  const getErrorMessage = (err: string | null) => {
+    if (!err) return '';
+    if (err === 'AccessDeniedPrivate') {
+      return 'Доступ ограничен. Платформа работает в режиме закрытого пет-проекта. Для регистрации нового аккаунта через соцсети ваш email должен быть добавлен в whitelist администратором.';
+    }
+    if (err === 'Callback') {
+      return 'Ошибка входа через внешнюю службу (OAuth).';
+    }
+    return err;
+  };
+  const [error, setError] = useState(getErrorMessage(urlError));
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -162,13 +170,21 @@ export default function SignInPage() {
             </Link>
           </div>
 
-          <p className="mt-4 text-[11px] text-text-muted text-center leading-relaxed">
-            Входя в аккаунт, вы соглашаетесь с{' '}
-            <Link href={`/${locale}/privacy`} className="text-accent hover:underline">
-              Политикой обработки персональных данных (152-ФЗ)
-            </Link>
-            .
-          </p>
+          <div className="mt-5 pt-4 border-t border-surface-border text-center space-y-2">
+            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-surface-border/50 text-[11px] text-text-secondary font-medium">
+              <span>🔒 Закрытый некоммерческий пет-проект</span>
+            </div>
+            <p className="text-[11px] text-text-muted leading-relaxed">
+              Вход и регистрация предназначены исключительно для ограниченного круга лиц (семья, близкие). Материалы сайта не являются публичной офертой, финансовой консультацией или индивидуальной инвестиционной рекомендацией (39-ФЗ РФ).
+            </p>
+            <p className="text-[11px] text-text-muted">
+              Входя в аккаунт, вы подтверждаете согласие с{' '}
+              <Link href={`/${locale}/privacy`} className="text-accent hover:underline">
+                Политикой обработки данных (152-ФЗ)
+              </Link>
+              .
+            </p>
+          </div>
         </div>
       </div>
     </div>
